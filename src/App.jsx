@@ -133,7 +133,23 @@ function logAudit(user, action, detail) {
   auditLog.unshift({ id: Date.now() + Math.random(), timestamp: new Date().toISOString(), user, action, detail });
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Shared Symptom Store (simulates cross-app sync) ──────────────────────────
+// In production this would be a real-time database. Here we use a module-level
+// array so both the web app and a simulated mobile submission can share state.
+const symptomStore = {
+  entries: [],
+  listeners: [],
+  add(entry) {
+    this.entries.unshift(entry);
+    this.listeners.forEach(fn => fn([...this.entries]));
+  },
+  subscribe(fn) { this.listeners.push(fn); },
+  unsubscribe(fn) { this.listeners = this.listeners.filter(l => l !== fn); },
+};
+
+const SEVERE_SYMPTOMS = ["Chest pain", "Shortness of breath", "Confusion", "Seizure", "Loss of consciousness", "Severe rash"];
+
+
 const HIGH_RISK_DRUGS = ["Warfarin", "Digoxin", "Amiodarone", "Methotrexate", "Lithium", "Opioids"];
 const INTERACTION_PAIRS = [
   ["Warfarin", "Aspirin"], ["Warfarin", "Ibuprofen"], ["Metformin", "Contrast Dye"],
@@ -508,6 +524,24 @@ export default function LessMeds() {
   const [caseTab, setCaseTab] = useState("overview");
   const [showNewCase, setShowNewCase] = useState(false);
   const [alerts, setAlerts] = useState([]);
+  const [symptomEntries, setSymptomEntries] = useState([]);
+
+  // Subscribe to shared symptom store — simulates real-time sync from mobile app
+  React.useEffect(() => {
+    const handler = (entries) => {
+      setSymptomEntries([...entries]);
+      const latest = entries[0];
+      if (!latest) return;
+      const severe = latest.symptoms.filter(s => SEVERE_SYMPTOMS.includes(s));
+      if (severe.length > 0) {
+        setAlerts(a => { const id = Date.now(); setTimeout(()=>setAlerts(x=>x.filter(v=>v.id!==id)),6000); return [...a,{id, msg:`🚨 ${latest.patientName}: Caregiver reported ${severe.join(', ')}`, type:'error'}]; });
+      } else {
+        setAlerts(a => { const id = Date.now(); setTimeout(()=>setAlerts(x=>x.filter(v=>v.id!==id)),4000); return [...a,{id, msg:`♥ ${latest.patientName}: New symptom report from caregiver`, type:'info'}]; });
+      }
+    };
+    symptomStore.subscribe(handler);
+    return () => symptomStore.unsubscribe(handler);
+  }, []);
 
   const casesWithScores = cases.map(c => {
     const { score, flags } = computeScore(c.medications, c.age);
@@ -635,10 +669,10 @@ export default function LessMeds() {
           </header>
 
           <div style={{ flex:1, overflowY:"auto", padding:24 }}>
-            {activeNav==="dashboard" && !selectedCase && <Dashboard cases={casesWithScores} onSelect={id=>{setSelectedCase(id);setActiveNav("cases");setCaseTab("overview");}} />}
+            {activeNav==="dashboard" && !selectedCase && <Dashboard cases={casesWithScores} symptomEntries={symptomEntries} onSelect={id=>{setSelectedCase(id);setActiveNav("cases");setCaseTab("overview");}} />}
             {activeNav==="cases" && !selectedCase && <CasesList cases={casesWithScores} onSelect={id=>{setSelectedCase(id);setCaseTab("overview");}} onNew={()=>setShowNewCase(true)} />}
             {activeNav==="cases" && selectedCase && selectedCaseData && (
-              <CaseDetail caseData={selectedCaseData} tab={caseTab} setTab={setCaseTab} onBack={()=>setSelectedCase(null)}
+              <CaseDetail caseData={selectedCaseData} symptomEntries={symptomEntries} tab={caseTab} setTab={setCaseTab} onBack={()=>setSelectedCase(null)}
                 onApprove={(rid)=>approveRec(selectedCase,rid)} onReject={(rid)=>rejectRec(selectedCase,rid)}
                 onAddMed={med=>addMedication(selectedCase,med)} onRemoveMed={mid=>removeMedication(selectedCase,mid)}
                 onEditMed={med=>editMedication(selectedCase,med)}
@@ -680,11 +714,13 @@ export default function LessMeds() {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-function Dashboard({ cases, onSelect }) {
+function Dashboard({ cases, symptomEntries, onSelect }) {
   const t = useTheme();
   const highRisk = cases.filter(c => c.score >= 71);
   const avgScore = Math.round(cases.reduce((s,c)=>s+c.score,0)/cases.length);
   const criticalFlags = cases.flatMap(c => c.flags.filter(f=>f.sev==="high").map(f=>({...f,caseName:c.name,caseId:c.id})));
+  const recentSymptoms = (symptomEntries||[]).slice(0,5);
+  const severeSymptoms = (symptomEntries||[]).filter(e=>e.symptoms.some(s=>SEVERE_SYMPTOMS.includes(s)));
   return (
     <div>
       <div style={{ marginBottom:24 }}>
@@ -696,12 +732,31 @@ function Dashboard({ cases, onSelect }) {
           { label:"Total Cases", value:cases.length, icon:"◈", color:t.accent },
           { label:"High Risk", value:highRisk.length, icon:"🔴", color:t.danger },
           { label:"Avg Risk Score", value:avgScore, icon:"◎", color:avgScore<=40?t.success:avgScore<=70?t.warning:t.danger },
-          { label:"Critical Flags", value:criticalFlags.length, icon:"⚠", color:t.warning },
+          { label:"Symptom Reports", value:(symptomEntries||[]).length, icon:"♥", color:t.warning },
         ].map(stat => <StatCard key={stat.label} {...stat} />)}
       </div>
+
+      {severeSymptoms.length > 0 && (
+        <div style={{ background:t.dangerBg, border:`1px solid ${t.danger}55`, borderRadius:12, padding:20, marginBottom:20 }}>
+          <div style={{ fontWeight:700, color:t.danger, marginBottom:12, fontSize:14 }}>🚨 Urgent Caregiver Symptom Reports</div>
+          {severeSymptoms.map((e,i)=>(
+            <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${t.dangerBorder}` }}>
+              <div>
+                <span style={{ color:t.dangerText, fontSize:13, fontWeight:600 }}>{e.patientName}</span>
+                <span style={{ color:t.textMuted, fontSize:12 }}> — {e.symptoms.filter(s=>SEVERE_SYMPTOMS.includes(s)).join(", ")}</span>
+              </div>
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                <span style={{ fontSize:11, color:t.textMuted }}>{e.time}</span>
+                <button onClick={()=>onSelect(e.caseId)} style={{ padding:"4px 12px", borderRadius:6, border:`1px solid ${t.danger}`, background:t.dangerBg, color:t.danger, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>View Case</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {criticalFlags.length > 0 && (
-        <div style={{ background:t.cardBg, border:`1px solid ${t.dangerBorder}`, borderRadius:12, padding:20, marginBottom:24 }}>
-          <div style={{ fontWeight:700, color:t.danger, marginBottom:14, fontSize:14 }}>🔴 Critical Alerts Requiring Attention</div>
+        <div style={{ background:t.cardBg, border:`1px solid ${t.dangerBorder}`, borderRadius:12, padding:20, marginBottom:20 }}>
+          <div style={{ fontWeight:700, color:t.danger, marginBottom:14, fontSize:14 }}>🔴 Critical Medication Alerts</div>
           {criticalFlags.slice(0,6).map((f,i) => (
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${t.border}` }}>
               <div><span style={{ color:t.textMuted, fontSize:12 }}>{f.caseName} — </span><span style={{ color:t.dangerText, fontSize:13 }}>{f.msg}</span></div>
@@ -710,6 +765,25 @@ function Dashboard({ cases, onSelect }) {
           ))}
         </div>
       )}
+
+      {recentSymptoms.length > 0 && (
+        <div style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding:20, marginBottom:20 }}>
+          <div style={{ fontWeight:700, color:t.textPrimary, marginBottom:14, fontSize:14 }}>♥ Recent Caregiver Symptom Reports</div>
+          {recentSymptoms.map((e,i)=>(
+            <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${t.border}` }}>
+              <div>
+                <span style={{ color:t.textPrimary, fontSize:13, fontWeight:600 }}>{e.patientName}</span>
+                <span style={{ color:t.textMuted, fontSize:12 }}> — {e.symptoms.slice(0,3).join(", ")}{e.symptoms.length>3?` +${e.symptoms.length-3} more":""}</span>
+              </div>
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                <span style={{ fontSize:11, color:t.textMuted }}>{e.time}</span>
+                <button onClick={()=>onSelect(e.caseId)} style={{ padding:"4px 12px", borderRadius:6, border:`1px solid ${t.accent}`, background:t.accentBg, color:t.accent, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>View</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ fontWeight:600, color:t.textMuted, fontSize:12, letterSpacing:1, textTransform:"uppercase", marginBottom:12 }}>All Cases</div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
         {cases.map(c => <CaseCard key={c.id} caseData={c} onClick={()=>onSelect(c.id)} />)}
@@ -811,11 +885,12 @@ function CasesList({ cases, onSelect, onNew }) {
 }
 
 // ─── Case Detail ──────────────────────────────────────────────────────────────
-function CaseDetail({ caseData, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
+function CaseDetail({ caseData, symptomEntries, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
   const t = useTheme();
   const [showNewMed, setShowNewMed] = useState(false);
   const [showNewRec, setShowNewRec] = useState(false);
-  const tabs = ["overview","medications","risk-report","recommendations","notes"];
+  const caseSymptoms = (symptomEntries || []).filter(e => e.caseId === caseData.id);
+  const tabs = ["overview","medications","risk-report","recommendations","symptoms","notes"];
   return (
     <div>
       <button onClick={onBack} style={{ background:"transparent", border:"none", color:t.accent, fontSize:13, cursor:"pointer", marginBottom:16, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:6 }}>
@@ -842,16 +917,17 @@ function CaseDetail({ caseData, tab, setTab, onBack, onApprove, onReject, onAddM
           </button>
         ))}
       </div>
-      {tab==="overview" && <CaseOverview caseData={caseData} />}
+      {tab==="overview" && <CaseOverview caseData={caseData} symptoms={caseSymptoms} />}
       {tab==="medications" && <MedicationsTab caseData={caseData} onAdd={onAddMed} onRemove={onRemoveMed} onEdit={onEditMed} showNew={showNewMed} setShowNew={setShowNewMed} currentUser={currentUser} />}
       {tab==="risk-report" && <RiskReport caseData={caseData} />}
       {tab==="recommendations" && <RecommendationsTab caseData={caseData} onApprove={onApprove} onReject={onReject} onAdd={onAddRec} showNew={showNewRec} setShowNew={setShowNewRec} currentUser={currentUser} />}
+      {tab==="symptoms" && <SymptomsTab caseData={caseData} symptoms={caseSymptoms} />}
       {tab==="notes" && <EmptyState>No clinical notes recorded. Notes feature coming in Phase 2.</EmptyState>}
     </div>
   );
 }
 
-function CaseOverview({ caseData }) {
+function CaseOverview({ caseData, symptoms }) {
   const t = useTheme();
   return (
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
@@ -888,6 +964,25 @@ function CaseOverview({ caseData }) {
             <div style={{ color:t.textPrimary, fontSize:13, fontWeight:500 }}>{m.name}</div>
           </div>
         ))}
+      </div>
+      <div style={{ background:t.cardBg, border:`1px solid ${(symptoms||[]).some(e=>e.symptoms.some(s=>SEVERE_SYMPTOMS.includes(s)))?t.danger+"55":t.border}`, borderRadius:12, padding:20, gridColumn:"1 / -1" }}>
+        <SectionTitle>Recent Caregiver Reports ({(symptoms||[]).length})</SectionTitle>
+        {(symptoms||[]).length === 0 ? (
+          <div style={{ color:t.textMuted, fontSize:13 }}>No symptoms reported yet via the mobile caregiver app.</div>
+        ) : (symptoms||[]).slice(0,3).map(e=>{
+          const hasSevere = e.symptoms.some(s=>SEVERE_SYMPTOMS.includes(s));
+          return (
+            <div key={e.id} style={{ display:"flex", alignItems:"flex-start", gap:10, padding:"10px 0", borderBottom:`1px solid ${t.border}` }}>
+              <span style={{ fontSize:16 }}>{hasSevere?"🚨":"♥"}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
+                  {e.symptoms.map(s=><span key={s} style={{ fontSize:11, padding:"2px 8px", borderRadius:20, background:SEVERE_SYMPTOMS.includes(s)?t.dangerBg:t.chipBg, color:SEVERE_SYMPTOMS.includes(s)?t.dangerText:t.textSecondary }}>{s}</span>)}
+                </div>
+                <div style={{ fontSize:11, color:t.textMuted }}>{e.reportedBy} · {e.date} {e.time}</div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1120,6 +1215,121 @@ function AllRecommendations({ cases, onApprove, onReject, currentUser }) {
           <div style={{ fontSize:11, color:t.textMuted, marginTop:8 }}>Proposed by {r.proposedBy} · {r.createdAt}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── Symptoms Tab ─────────────────────────────────────────────────────────────
+function SymptomsTab({ caseData, symptoms }) {
+  const t = useTheme();
+  const SYMPTOM_OPTIONS = ["Dizziness","Nausea","Fatigue","Shortness of breath","Swelling","Confusion","Headache","Chest pain","Rash","Other"];
+  const [simOpen, setSimOpen] = useState(false);
+  const [simSelected, setSimSelected] = useState([]);
+  const [simNotes, setSimNotes] = useState("");
+  const inputStyle = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${t.border}`, background:t.inputBg, color:t.textPrimary, fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" };
+
+  function toggleSim(s) { setSimSelected(p => p.includes(s) ? p.filter(x=>x!==s) : [...p,s]); }
+  function submitSim() {
+    if (!simSelected.length) return;
+    symptomStore.add({
+      id: Date.now(),
+      caseId: caseData.id,
+      patientName: caseData.name,
+      symptoms: simSelected,
+      notes: simNotes,
+      reportedBy: "Caregiver (Mobile App)",
+      time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+      date: new Date().toLocaleDateString(),
+      timestamp: new Date().toISOString(),
+    });
+    setSimSelected([]); setSimNotes(""); setSimOpen(false);
+  }
+
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div>
+          <div style={{ fontSize:16, fontWeight:700, color:t.textPrimary }}>Caregiver Symptom Reports</div>
+          <div style={{ fontSize:12, color:t.textMuted, marginTop:2 }}>Reported via the Less Meds caregiver mobile app</div>
+        </div>
+        <button onClick={()=>setSimOpen(p=>!p)} style={{ padding:"7px 14px", borderRadius:8, border:`1px solid ${t.accent}`, background:t.accentBg, color:t.accent, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:6 }}>
+          📱 Simulate Mobile Report
+        </button>
+      </div>
+
+      {/* Mobile simulator panel */}
+      {simOpen && (
+        <div style={{ background:t.cardBg2, border:`1px solid ${t.accent}44`, borderRadius:12, padding:20, marginBottom:20 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+            <div style={{ width:28, height:28, borderRadius:6, background:"linear-gradient(135deg,#06b6d4,#3b82f6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>📱</div>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:t.textPrimary }}>Simulating: Caregiver Mobile App</div>
+              <div style={{ fontSize:11, color:t.textMuted }}>Patient: {caseData.name} · This simulates a caregiver tapping symptoms on their phone</div>
+            </div>
+          </div>
+          <div style={{ fontSize:11, color:t.textMuted, fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Select Symptoms</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
+            {SYMPTOM_OPTIONS.map(s => (
+              <button key={s} onClick={()=>toggleSim(s)} style={{ padding:"5px 12px", borderRadius:20, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontWeight: simSelected.includes(s) ? 700 : 400,
+                border:`1px solid ${simSelected.includes(s) ? t.accent : t.border}`,
+                background: simSelected.includes(s) ? t.accentBg : "transparent",
+                color: simSelected.includes(s) ? t.accent : t.textSecondary,
+                outline: SEVERE_SYMPTOMS.includes(s) ? `1px dashed ${t.danger}55` : "none" }}>
+                {SEVERE_SYMPTOMS.includes(s) ? "⚠ " : ""}{s}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:t.textMuted, marginBottom:6 }}>Note: ⚠ symptoms trigger an urgent alert on the clinical dashboard</div>
+          <textarea value={simNotes} onChange={e=>setSimNotes(e.target.value)} placeholder="Caregiver notes (optional)..." rows={2}
+            style={{...inputStyle, resize:"vertical", marginBottom:12}}/>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={()=>{setSimOpen(false);setSimSelected([]);setSimNotes("");}} style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${t.border}`, background:"transparent", color:t.textSecondary, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
+            <button onClick={submitSim} disabled={!simSelected.length} style={{ padding:"8px 20px", borderRadius:8, border:"none", background: simSelected.length ? t.btnPrimary : t.border, color: simSelected.length ? t.btnPrimaryText : t.textMuted, fontSize:12, fontWeight:700, cursor: simSelected.length ? "pointer" : "not-allowed", fontFamily:"'DM Sans',sans-serif" }}>
+              Submit Report →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Symptom timeline */}
+      {symptoms.length === 0 ? (
+        <div style={{ padding:40, textAlign:"center", color:t.textMuted, fontSize:13, background:t.cardBg, border:`1px dashed ${t.border}`, borderRadius:12 }}>
+          No symptoms reported yet for this patient.<br/>
+          <span style={{ fontSize:12, marginTop:6, display:"block" }}>Caregivers can log symptoms via the Less Meds mobile app. Use "Simulate Mobile Report" above to test.</span>
+        </div>
+      ) : (
+        <div>
+          <div style={{ fontSize:11, color:t.textMuted, fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:12 }}>{symptoms.length} Report{symptoms.length!==1?"s":""} on File</div>
+          {symptoms.map(e => {
+            const hasSevere = e.symptoms.some(s => SEVERE_SYMPTOMS.includes(s));
+            return (
+              <div key={e.id} style={{ background:t.cardBg, border:`1px solid ${hasSevere ? t.danger+"55" : t.border}`, borderRadius:12, padding:18, marginBottom:12 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:32, height:32, borderRadius:"50%", background: hasSevere ? t.dangerBg : t.accentBg, border:`1px solid ${hasSevere?t.danger+"44":t.accent+"44"}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>
+                      {hasSevere ? "🚨" : "♥"}
+                    </div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:600, color:t.textPrimary }}>{e.reportedBy}</div>
+                      <div style={{ fontSize:11, color:t.textMuted }}>{e.date} at {e.time}</div>
+                    </div>
+                  </div>
+                  {hasSevere && <span style={{ padding:"3px 10px", borderRadius:20, background:t.dangerBg, color:t.dangerText, fontSize:11, fontWeight:700, border:`1px solid ${t.danger}44` }}>⚠ Urgent</span>}
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: e.notes ? 10 : 0 }}>
+                  {e.symptoms.map(s => (
+                    <span key={s} style={{ padding:"4px 10px", borderRadius:20, fontSize:12, fontWeight: SEVERE_SYMPTOMS.includes(s) ? 700 : 400,
+                      background: SEVERE_SYMPTOMS.includes(s) ? t.dangerBg : t.chipBg,
+                      color: SEVERE_SYMPTOMS.includes(s) ? t.dangerText : t.textSecondary,
+                      border:`1px solid ${SEVERE_SYMPTOMS.includes(s) ? t.danger+"44" : t.border}` }}>{s}</span>
+                  ))}
+                </div>
+                {e.notes && <div style={{ fontSize:12, color:t.textSecondary, fontStyle:"italic", padding:"8px 12px", background:t.cardBg2, borderRadius:8, border:`1px solid ${t.border}` }}>{e.notes}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
