@@ -252,6 +252,69 @@ function Chip({ children, color, bg }) {
   return <div style={{ padding:"4px 10px", borderRadius:20, background:bg, color, fontSize:12, fontWeight:600, border:`1px solid ${color}33` }}>{children}</div>;
 }
 
+// ─── Logo Component (Option A — Descending Pill) ──────────────────────────────
+function LogoA({ theme = "dark", size = "sidebar" }) {
+  const isLight = theme === "light";
+  const capsuleLeft = isLight ? "#0369a1" : "#06b6d4";
+  const capsuleRight = isLight ? "#0ea5e9" : "#0e7490";
+  const arrowColor = isLight ? "#0369a1" : "#06b6d4";
+  const dashColor = isLight ? "#f8fafc" : "#060b14";
+  const textPrimary = isLight ? "#0f172a" : "#f1f5f9";
+
+  if (size === "icon") {
+    // Small square icon for favicon / tiny use
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill={isLight ? "#f0f9ff" : "#0a1628"}/>
+        <g transform="translate(16,16)">
+          <path d="M-7 -5 C-7 -8 -5 -10 -2 -10 L0 -10 L0 4 L-2 4 C-5 4 -7 2 -7 -1 Z" fill={capsuleLeft}/>
+          <path d="M0 -10 L2 -10 C5 -10 7 -8 7 -5 L7 -1 C7 2 5 4 2 4 L0 4 Z" fill={capsuleRight}/>
+          <line x1="0" y1="-9" x2="0" y2="3" stroke={dashColor} strokeWidth="0.8" strokeDasharray="1.5 1.5"/>
+        </g>
+        <path d="M16 20 L16 24" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M13 22 L16 26 L19 22" stroke={arrowColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+    );
+  }
+
+  if (size === "sidebar") {
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        {/* Capsule icon */}
+        <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 18 C4 11 8 6 14 6 L18 6 L18 30 L14 30 C8 30 4 25 4 18 Z" fill={capsuleLeft}/>
+          <path d="M18 6 L22 6 C28 6 32 11 32 18 C32 25 28 30 22 30 L18 30 Z" fill={capsuleRight}/>
+          <line x1="18" y1="6" x2="18" y2="30" stroke={dashColor} strokeWidth="1.5" strokeDasharray="2 2"/>
+          <path d="M18 33 L18 39" stroke={arrowColor} strokeWidth="2" strokeLinecap="round"/>
+          <path d="M14 36 L18 41 L22 36" stroke={arrowColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
+        {/* Wordmark */}
+        <div>
+          <div style={{ fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:16, color:textPrimary, letterSpacing:"-0.5px", lineHeight:1 }}>Less</div>
+          <div style={{ fontFamily:"'Outfit',sans-serif", fontWeight:300, fontSize:13, color:arrowColor, letterSpacing:"2px", lineHeight:1, marginTop:2 }}>MEDS</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Full horizontal logo for headers etc.
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+      <svg width="40" height="48" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 20 C4 12 9 6 16 6 L20 6 L20 34 L16 34 C9 34 4 28 4 20 Z" fill={capsuleLeft}/>
+        <path d="M20 6 L24 6 C31 6 36 12 36 20 C36 28 31 34 24 34 L20 34 Z" fill={capsuleRight}/>
+        <line x1="20" y1="6" x2="20" y2="34" stroke={dashColor} strokeWidth="1.5" strokeDasharray="2 2"/>
+        <path d="M20 37 L20 43" stroke={arrowColor} strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M15 40 L20 46 L25 40" stroke={arrowColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </svg>
+      <div>
+        <div style={{ fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:20, color:textPrimary, letterSpacing:"-0.5px", lineHeight:1 }}>Less</div>
+        <div style={{ fontFamily:"'Outfit',sans-serif", fontWeight:300, fontSize:15, color:arrowColor, letterSpacing:"3px", lineHeight:1, marginTop:3 }}>MEDS</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function LessMeds() {
   const [themeName, setThemeName] = useState("dark");
@@ -321,18 +384,12 @@ export default function LessMeds() {
   return (
     <ThemeContext.Provider value={t}>
       <div style={{ display:"flex", height:"100vh", background:t.appBg, color:t.textPrimary, fontFamily:"'DM Sans', sans-serif", overflow:"hidden" }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;700;800&display=swap" rel="stylesheet"/>
 
         {/* Sidebar */}
         <aside style={{ width:220, background:t.sidebarBg, borderRight:`1px solid ${t.border}`, display:"flex", flexDirection:"column", flexShrink:0, boxShadow: themeName==="light" ? "2px 0 8px rgba(0,0,0,0.06)" : "none" }}>
-          <div style={{ padding:"24px 20px 20px", borderBottom:`1px solid ${t.border}` }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,#06b6d4,#3b82f6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⬡</div>
-              <div>
-                <div style={{ fontWeight:700, fontSize:15, color:t.textPrimary, letterSpacing:0.5 }}>LessMeds</div>
-                <div style={{ fontSize:10, color:t.textMuted, letterSpacing:1, textTransform:"uppercase" }}>Medication Mgmt</div>
-              </div>
-            </div>
+          <div style={{ padding:"20px 20px 16px", borderBottom:`1px solid ${t.border}` }}>
+            <LogoA theme={themeName} size="sidebar" />
           </div>
           <nav style={{ flex:1, padding:"12px 10px" }}>
             {navItems.map(item => (
@@ -895,8 +952,8 @@ function SettingsView({ themeName, setThemeName }) {
               style={{ padding:"16px", borderRadius:12, border:`2px solid ${themeName===key ? t.accent : t.border}`, background:themeName===key ? t.accentBg : t.cardBg2,
                 cursor:"pointer", fontFamily:"'DM Sans',sans-serif", textAlign:"left", transition:"all 0.2s" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                <div style={{ width:32, height:32, borderRadius:8, background: key==="dark" ? "#060b14" : "#ffffff", border:`1px solid ${t.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>
-                  {key==="dark" ? "🌙" : "☀️"}
+                <div style={{ padding:"8px 10px", borderRadius:8, background: key==="dark" ? "#0a1628" : "#f0f9ff", border:`1px solid ${t.border}` }}>
+                  <LogoA theme={key} size="icon" />
                 </div>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700, color:t.textPrimary }}>{th.name}</div>
