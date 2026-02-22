@@ -363,6 +363,19 @@ export default function LessMeds() {
     logAudit(currentUser.name, "REMOVE_MEDICATION", `${med?.name} removed from case ${caseId}`);
     showAlert("Medication removed.", "info");
   }
+  function editMedication(caseId, updatedMed) {
+    setCases(prev => prev.map(c => c.id !== caseId ? c : {
+      ...c, medications: c.medications.map(m => m.id !== updatedMed.id ? m : {
+        ...m,
+        name: updatedMed.name,
+        dose: updatedMed.dose,
+        frequency: updatedMed.frequency,
+        class: updatedMed.class,
+      })
+    }));
+    logAudit(currentUser.name, "EDIT_MEDICATION", `${updatedMed.name} updated in case ${caseId}${updatedMed.changeReason ? " — " + updatedMed.changeReason : ""}`);
+    showAlert(`${updatedMed.name} updated successfully.`, "success");
+  }
   function addRecommendation(caseId, rec) {
     const newRec = { ...rec, id:"r"+Date.now(), status:"pending", proposedBy:currentUser.name, createdAt:new Date().toISOString().slice(0,10) };
     setCases(prev => prev.map(c => c.id !== caseId ? c : { ...c, recommendations:[...c.recommendations, newRec] }));
@@ -446,6 +459,7 @@ export default function LessMeds() {
               <CaseDetail caseData={selectedCaseData} tab={caseTab} setTab={setCaseTab} onBack={()=>setSelectedCase(null)}
                 onApprove={(rid)=>approveRec(selectedCase,rid)} onReject={(rid)=>rejectRec(selectedCase,rid)}
                 onAddMed={med=>addMedication(selectedCase,med)} onRemoveMed={mid=>removeMedication(selectedCase,mid)}
+                onEditMed={med=>editMedication(selectedCase,med)}
                 onAddRec={rec=>addRecommendation(selectedCase,rec)} currentUser={currentUser} />
             )}
             {activeNav==="recommendations" && <AllRecommendations cases={casesWithScores} onApprove={approveRec} onReject={rejectRec} currentUser={currentUser} />}
@@ -615,7 +629,7 @@ function CasesList({ cases, onSelect, onNew }) {
 }
 
 // ─── Case Detail ──────────────────────────────────────────────────────────────
-function CaseDetail({ caseData, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onAddRec, currentUser }) {
+function CaseDetail({ caseData, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
   const t = useTheme();
   const [showNewMed, setShowNewMed] = useState(false);
   const [showNewRec, setShowNewRec] = useState(false);
@@ -647,7 +661,7 @@ function CaseDetail({ caseData, tab, setTab, onBack, onApprove, onReject, onAddM
         ))}
       </div>
       {tab==="overview" && <CaseOverview caseData={caseData} />}
-      {tab==="medications" && <MedicationsTab caseData={caseData} onAdd={onAddMed} onRemove={onRemoveMed} showNew={showNewMed} setShowNew={setShowNewMed} currentUser={currentUser} />}
+      {tab==="medications" && <MedicationsTab caseData={caseData} onAdd={onAddMed} onRemove={onRemoveMed} onEdit={onEditMed} showNew={showNewMed} setShowNew={setShowNewMed} currentUser={currentUser} />}
       {tab==="risk-report" && <RiskReport caseData={caseData} />}
       {tab==="recommendations" && <RecommendationsTab caseData={caseData} onApprove={onApprove} onReject={onReject} onAdd={onAddRec} showNew={showNewRec} setShowNew={setShowNewRec} currentUser={currentUser} />}
       {tab==="notes" && <EmptyState>No clinical notes recorded. Notes feature coming in Phase 2.</EmptyState>}
@@ -697,11 +711,14 @@ function CaseOverview({ caseData }) {
   );
 }
 
-function MedicationsTab({ caseData, onAdd, onRemove, showNew, setShowNew }) {
+function MedicationsTab({ caseData, onAdd, onRemove, onEdit, showNew, setShowNew }) {
   const t = useTheme();
   const [newMed, setNewMed] = useState({ name:"", dose:"", frequency:"Daily", class:"" });
+  const [editingMed, setEditingMed] = useState(null);
   const medClasses = ["Anticoagulant","Antidiabetic","ACE Inhibitor","ARB","Statin","Beta Blocker","CCB","Cardiac Glycoside","Diuretic","Antiplatelet","Antiarrhythmic","Antibiotic","Antifungal","Antiviral","SSRI","SNRI","Antipsychotic","Benzodiazepine","Opioid","NSAID","Corticosteroid","Bronchodilator","Bisphosphonate","Thyroid Agent","Supplement","Other"];
   const inputStyle = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${t.border}`, background:t.inputBg, color:t.textPrimary, fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" };
+  const freqOptions = ["Daily","Twice daily","Three times daily","Four times daily","Weekly","Every other day","As needed","With meals"];
+
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -712,7 +729,7 @@ function MedicationsTab({ caseData, onAdd, onRemove, showNew, setShowNew }) {
         <table style={{ width:"100%", borderCollapse:"collapse" }}>
           <thead>
             <tr style={{ borderBottom:`1px solid ${t.border}`, background: t.appBg==="#f0f4f8" ? t.cardBg2 : "transparent" }}>
-              {["Medication","Dose","Frequency","Class","Missed","Start Date","Risk",""].map(h=>(
+              {["Medication","Dose","Frequency","Class","Missed","Start Date","Risk","Actions"].map(h=>(
                 <th key={h} style={{ padding:"10px 14px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>{h}</th>
               ))}
             </tr>
@@ -737,8 +754,21 @@ function MedicationsTab({ caseData, onAdd, onRemove, showNew, setShowNew }) {
                     {isHighRisk && caseData.age>=65 ? <span style={{ fontSize:12, color:t.danger, fontWeight:600 }}>⚠ Geri</span> : <span style={{color:t.success,fontSize:12}}>✓</span>}
                   </td>
                   <td style={{ padding:"12px 14px" }}>
-                    <button onClick={()=>{if(confirm(`Remove ${m.name}?`))onRemove(m.id);}}
-                      style={{ padding:"3px 10px", borderRadius:6, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Remove</button>
+                    <div style={{ display:"flex", gap:6 }}>
+                      {/* Edit button */}
+                      <button
+                        onClick={()=>setEditingMed({ ...m })}
+                        title="Edit medication"
+                        style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${t.accent}`, background:t.accentBg, color:t.accent, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}>
+                        ✏ Edit
+                      </button>
+                      {/* Remove button */}
+                      <button
+                        onClick={()=>{if(window.confirm(`Remove ${m.name}?`))onRemove(m.id);}}
+                        style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
+                        Remove
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -746,12 +776,54 @@ function MedicationsTab({ caseData, onAdd, onRemove, showNew, setShowNew }) {
           </tbody>
         </table>
       </div>
+
+      {/* Add Medication Modal */}
       {showNew && (
-        <ThemedModal title="Add Medication" onClose={()=>setShowNew(false)} onSave={()=>{if(newMed.name){onAdd(newMed);setShowNew(false);setNewMed({name:"",dose:"",frequency:"Daily",class:""});}}}>
+        <ThemedModal title="Add Medication" onClose={()=>{ setShowNew(false); setNewMed({name:"",dose:"",frequency:"Daily",class:""}); }} onSave={()=>{if(newMed.name){onAdd(newMed);setShowNew(false);setNewMed({name:"",dose:"",frequency:"Daily",class:""});}}}>
           <ThemedField label="Drug Name"><input value={newMed.name} onChange={e=>setNewMed(p=>({...p,name:e.target.value}))} placeholder="e.g. Metformin" style={inputStyle}/></ThemedField>
           <ThemedField label="Dose"><input value={newMed.dose} onChange={e=>setNewMed(p=>({...p,dose:e.target.value}))} placeholder="e.g. 500mg" style={inputStyle}/></ThemedField>
-          <ThemedField label="Frequency"><select value={newMed.frequency} onChange={e=>setNewMed(p=>({...p,frequency:e.target.value}))} style={inputStyle}>{["Daily","Twice daily","Three times daily","Weekly","As needed"].map(f=><option key={f}>{f}</option>)}</select></ThemedField>
+          <ThemedField label="Frequency"><select value={newMed.frequency} onChange={e=>setNewMed(p=>({...p,frequency:e.target.value}))} style={inputStyle}>{freqOptions.map(f=><option key={f}>{f}</option>)}</select></ThemedField>
           <ThemedField label="Drug Class"><select value={newMed.class} onChange={e=>setNewMed(p=>({...p,class:e.target.value}))} style={inputStyle}><option value="">Select...</option>{medClasses.map(c=><option key={c}>{c}</option>)}</select></ThemedField>
+        </ThemedModal>
+      )}
+
+      {/* Edit Medication Modal */}
+      {editingMed && (
+        <ThemedModal
+          title="Edit Medication"
+          onClose={()=>setEditingMed(null)}
+          onSave={()=>{
+            if(editingMed.name){ onEdit(editingMed); setEditingMed(null); }
+          }}>
+          {/* Read-only start date notice */}
+          <div style={{ padding:"8px 12px", borderRadius:8, background:t.cardBg2, border:`1px solid ${t.border}`, marginBottom:14, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize:12, color:t.textMuted }}>Start Date (locked)</span>
+            <span style={{ fontSize:12, color:t.textSecondary, fontFamily:"monospace" }}>{editingMed.startDate}</span>
+          </div>
+          <ThemedField label="Drug Name">
+            <input value={editingMed.name} onChange={e=>setEditingMed(p=>({...p,name:e.target.value}))} style={inputStyle}/>
+          </ThemedField>
+          <ThemedField label="Dose">
+            <input value={editingMed.dose} onChange={e=>setEditingMed(p=>({...p,dose:e.target.value}))} placeholder="e.g. 500mg" style={inputStyle}/>
+          </ThemedField>
+          <ThemedField label="Frequency">
+            <select value={editingMed.frequency} onChange={e=>setEditingMed(p=>({...p,frequency:e.target.value}))} style={inputStyle}>
+              {freqOptions.map(f=><option key={f}>{f}</option>)}
+            </select>
+          </ThemedField>
+          <ThemedField label="Drug Class">
+            <select value={editingMed.class} onChange={e=>setEditingMed(p=>({...p,class:e.target.value}))} style={inputStyle}>
+              <option value="">Select...</option>
+              {medClasses.map(c=><option key={c}>{c}</option>)}
+            </select>
+          </ThemedField>
+          {/* Change reason — good clinical practice */}
+          <ThemedField label="Reason for Change">
+            <select value={editingMed.changeReason||""} onChange={e=>setEditingMed(p=>({...p,changeReason:e.target.value}))} style={inputStyle}>
+              <option value="">Select reason...</option>
+              {["Dose adjustment","Frequency change","Correction of entry error","Physician order","Pharmacist recommendation","Side effect management","Renal/hepatic adjustment"].map(r=><option key={r}>{r}</option>)}
+            </select>
+          </ThemedField>
         </ThemedModal>
       )}
     </div>
