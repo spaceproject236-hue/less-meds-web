@@ -1,4 +1,15 @@
-import React, { useState, useCallback, createContext, useContext } from "react";
+import React, { useState, useCallback, createContext, useContext, useEffect, useRef } from "react";
+
+// ─── Responsive Hook ──────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+}
 
 // ─── Theme Definitions ────────────────────────────────────────────────────────
 const THEMES = {
@@ -126,6 +137,8 @@ const THEMES = {
 
 const ThemeContext = createContext(THEMES.dark);
 function useTheme() { return useContext(ThemeContext); }
+const MobileContext = createContext(false);
+function useIsMobileCtx() { return useContext(MobileContext); }
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 const auditLog = [];
@@ -611,65 +624,84 @@ export default function LessMeds() {
   const totalFlags = casesWithScores.reduce((s, c) => s + c.flags.filter(f => f.sev === "high").length, 0);
   const t = theme;
 
+  const isMobile = useIsMobile();
+
   return (
+    <MobileContext.Provider value={isMobile}>
+    <MobileContext.Provider value={isMobile}>
     <ThemeContext.Provider value={t}>
-      <div style={{ display:"flex", height:"100vh", background:t.appBg, color:t.textPrimary, fontFamily:"'DM Sans', sans-serif", overflow:"hidden" }}>
+      <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", height:"100vh", background:t.appBg, color:t.textPrimary, fontFamily:"'DM Sans', sans-serif", overflow:"hidden" }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;700;800&display=swap" rel="stylesheet"/>
 
-        {/* Sidebar */}
-        <aside style={{ width:220, background:t.sidebarBg, borderRight:`1px solid ${t.border}`, display:"flex", flexDirection:"column", flexShrink:0, boxShadow: themeName==="light" ? "2px 0 8px rgba(0,0,0,0.06)" : "none" }}>
-          <div style={{ padding:"20px 20px 16px", borderBottom:`1px solid ${t.border}` }}>
-            <LogoA theme={themeName} size="sidebar" />
-          </div>
-          <nav style={{ flex:1, padding:"12px 10px" }}>
-            {navItems.map(item => (
-              <button key={item.id} onClick={() => { setActiveNav(item.id); setSelectedCase(null); }}
-                style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 12px", borderRadius:8, border:"none", cursor:"pointer", marginBottom:2,
-                  background: activeNav === item.id ? t.navActive : "transparent",
-                  color: activeNav === item.id ? t.navActiveText : t.navText,
-                  fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight: activeNav === item.id ? 600 : 400, textAlign:"left" }}>
-                <span style={{ fontSize:14 }}>{item.icon}</span>{item.label}
-              </button>
-            ))}
-          </nav>
-          {/* Theme switcher mini preview in sidebar */}
-          <div style={{ padding:"12px 14px", borderTop:`1px solid ${t.border}` }}>
-            <div style={{ fontSize:10, color:t.textMuted, fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Theme</div>
-            <div style={{ display:"flex", gap:6 }}>
-              {Object.entries(THEMES).map(([key, th]) => (
-                <button key={key} onClick={() => setThemeName(key)}
-                  style={{ flex:1, padding:"5px 4px", borderRadius:6, border:`1px solid ${themeName===key ? t.accent : t.border}`, background:themeName===key ? t.accentBg : "transparent",
-                    color:themeName===key ? t.accent : t.textMuted, fontSize:9, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", letterSpacing:0.3 }}>
-                  {key === "dark" ? "🌙 Dark" : "☀️ Light"}
+        {/* ── Desktop Sidebar (hidden on mobile) ── */}
+        {!isMobile && (
+          <aside style={{ width:220, background:t.sidebarBg, borderRight:`1px solid ${t.border}`, display:"flex", flexDirection:"column", flexShrink:0, boxShadow: themeName==="light" ? "2px 0 8px rgba(0,0,0,0.06)" : "none" }}>
+            <div style={{ padding:"20px 20px 16px", borderBottom:`1px solid ${t.border}` }}>
+              <LogoA theme={themeName} size="sidebar" />
+            </div>
+            <nav style={{ flex:1, padding:"12px 10px" }}>
+              {navItems.map(item => (
+                <button key={item.id} onClick={() => { setActiveNav(item.id); setSelectedCase(null); }}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 12px", borderRadius:8, border:"none", cursor:"pointer", marginBottom:2,
+                    background: activeNav === item.id ? t.navActive : "transparent",
+                    color: activeNav === item.id ? t.navActiveText : t.navText,
+                    fontFamily:"'DM Sans',sans-serif", fontSize:14, fontWeight: activeNav === item.id ? 600 : 400, textAlign:"left" }}>
+                  <span style={{ fontSize:14 }}>{item.icon}</span>{item.label}
                 </button>
               ))}
-            </div>
-          </div>
-          <div style={{ padding:"16px 14px", borderTop:`1px solid ${t.border}` }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,#3b82f6,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#fff" }}>
-                {currentUser.name.split(" ").map(w=>w[0]).join("")}
+            </nav>
+            <div style={{ padding:"12px 14px", borderTop:`1px solid ${t.border}` }}>
+              <div style={{ fontSize:10, color:t.textMuted, fontWeight:700, letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>Theme</div>
+              <div style={{ display:"flex", gap:6 }}>
+                {Object.entries(THEMES).map(([key, th]) => (
+                  <button key={key} onClick={() => setThemeName(key)}
+                    style={{ flex:1, padding:"5px 4px", borderRadius:6, border:`1px solid ${themeName===key ? t.accent : t.border}`, background:themeName===key ? t.accentBg : "transparent",
+                      color:themeName===key ? t.accent : t.textMuted, fontSize:9, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", letterSpacing:0.3 }}>
+                    {key === "dark" ? "🌙 Dark" : "☀️ Light"}
+                  </button>
+                ))}
               </div>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:t.textPrimary }}>{currentUser.name}</div>
-                <div style={{ fontSize:11, color:t.textMuted, textTransform:"capitalize" }}>{currentUser.role}</div>
+            </div>
+            <div style={{ padding:"16px 14px", borderTop:`1px solid ${t.border}` }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,#3b82f6,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#fff" }}>
+                  {currentUser.name.split(" ").map(w=>w[0]).join("")}
+                </div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, color:t.textPrimary }}>{currentUser.name}</div>
+                  <div style={{ fontSize:11, color:t.textMuted, textTransform:"capitalize" }}>{currentUser.role}</div>
+                </div>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
 
-        {/* Main */}
-        <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          <header style={{ height:56, background:t.headerBg, borderBottom:`1px solid ${t.border}`, display:"flex", alignItems:"center", padding:"0 24px", gap:12, flexShrink:0, boxShadow: themeName==="light" ? "0 1px 4px rgba(0,0,0,0.06)" : "none" }}>
-            <div style={{ flex:1, fontSize:16, fontWeight:600, color:t.textPrimary }}>
-              {selectedCase ? `Case: ${selectedCaseData?.name}` : navItems.find(n=>n.id===activeNav)?.label}
-            </div>
-            {totalHighRisk > 0 && <Chip color={t.danger} bg={t.dangerBg}>{totalHighRisk} High Risk</Chip>}
-            {totalPending > 0 && <Chip color={t.warning} bg={t.warningBg}>{totalPending} Pending</Chip>}
-            {totalFlags > 0 && <Chip color={t.danger} bg={t.dangerBg}>🔴 {totalFlags} Critical</Chip>}
-          </header>
+        {/* ── Main content area ── */}
+        <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", paddingBottom: isMobile ? 64 : 0 }}>
 
-          <div style={{ flex:1, overflowY:"auto", padding:24 }}>
+          {/* Mobile top bar */}
+          {isMobile && (
+            <header style={{ height:52, background:t.headerBg, borderBottom:`1px solid ${t.border}`, display:"flex", alignItems:"center", padding:"0 16px", gap:10, flexShrink:0 }}>
+              <LogoA theme={themeName} size="sidebar" />
+              <div style={{ flex:1 }}/>
+              {totalHighRisk > 0 && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:20, background:t.dangerBg, color:t.dangerText, fontWeight:700 }}>🔴 {totalHighRisk}</span>}
+              {totalPending > 0 && <span style={{ fontSize:11, padding:"3px 8px", borderRadius:20, background:t.warningBg, color:t.warningText, fontWeight:700 }}>⏳ {totalPending}</span>}
+            </header>
+          )}
+
+          {/* Desktop top bar */}
+          {!isMobile && (
+            <header style={{ height:56, background:t.headerBg, borderBottom:`1px solid ${t.border}`, display:"flex", alignItems:"center", padding:"0 24px", gap:12, flexShrink:0, boxShadow: themeName==="light" ? "0 1px 4px rgba(0,0,0,0.06)" : "none" }}>
+              <div style={{ flex:1, fontSize:16, fontWeight:600, color:t.textPrimary }}>
+                {selectedCase ? `Case: ${selectedCaseData?.name}` : navItems.find(n=>n.id===activeNav)?.label}
+              </div>
+              {totalHighRisk > 0 && <Chip color={t.danger} bg={t.dangerBg}>{totalHighRisk} High Risk</Chip>}
+              {totalPending > 0 && <Chip color={t.warning} bg={t.warningBg}>{totalPending} Pending</Chip>}
+              {totalFlags > 0 && <Chip color={t.danger} bg={t.dangerBg}>🔴 {totalFlags} Critical</Chip>}
+            </header>
+          )}
+
+          <div style={{ flex:1, overflowY:"auto", padding: isMobile ? 14 : 24 }}>
             {activeNav==="dashboard" && !selectedCase && <Dashboard cases={casesWithScores} symptomEntries={symptomEntries} onSelect={id=>{setSelectedCase(id);setActiveNav("cases");setCaseTab("overview");}} />}
             {activeNav==="cases" && !selectedCase && <CasesList cases={casesWithScores} onSelect={id=>{setSelectedCase(id);setCaseTab("overview");}} onNew={()=>setShowNewCase(true)} />}
             {activeNav==="cases" && selectedCase && selectedCaseData && (
@@ -687,16 +719,31 @@ export default function LessMeds() {
         </main>
 
         {/* Toast Alerts */}
-        <div style={{ position:"fixed", bottom:24, right:24, display:"flex", flexDirection:"column", gap:8, zIndex:1000 }}>
+        <div style={{ position:"fixed", bottom: isMobile ? 80 : 24, right: isMobile ? 12 : 24, left: isMobile ? 12 : "auto", display:"flex", flexDirection:"column", gap:8, zIndex:1000 }}>
           {alerts.map(a => (
             <div key={a.id} style={{ padding:"12px 16px", borderRadius:10,
-              background: a.type==="success" ? t.successBg : t.cardBg2,
-              border:`1px solid ${a.type==="success" ? t.successBorder : t.border}`,
-              color:t.textPrimary, fontSize:13, maxWidth:300, boxShadow:"0 4px 20px rgba(0,0,0,0.15)", animation:"slideIn 0.3s ease" }}>
+              background: a.type==="success" ? t.successBg : a.type==="error" ? t.dangerBg : t.cardBg2,
+              border:`1px solid ${a.type==="success" ? t.successBorder : a.type==="error" ? t.dangerBorder : t.border}`,
+              color:t.textPrimary, fontSize:13, boxShadow:"0 4px 20px rgba(0,0,0,0.15)", animation:"slideIn 0.3s ease" }}>
               {a.type==="success"?"✅ ":a.type==="error"?"❌ ":"ℹ️ "}{a.msg}
             </div>
           ))}
         </div>
+
+        {/* ── Mobile Bottom Nav ── */}
+        {isMobile && (
+          <nav style={{ position:"fixed", bottom:0, left:0, right:0, height:64, background:t.sidebarBg, borderTop:`1px solid ${t.border}`, display:"flex", alignItems:"center", zIndex:100, boxShadow:"0 -2px 12px rgba(0,0,0,0.15)" }}>
+            {navItems.map(item => (
+              <button key={item.id} onClick={() => { setActiveNav(item.id); setSelectedCase(null); }}
+                style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, padding:"8px 4px", border:"none", background:"transparent", cursor:"pointer",
+                  color: activeNav === item.id ? t.navActiveText : t.textMuted, fontFamily:"'DM Sans',sans-serif" }}>
+                <span style={{ fontSize:18, lineHeight:1 }}>{item.icon}</span>
+                <span style={{ fontSize:9, fontWeight: activeNav===item.id ? 700 : 400, letterSpacing:0.3 }}>{item.label}</span>
+                {activeNav === item.id && <div style={{ width:20, height:2, borderRadius:2, background:t.accent, marginTop:1 }}/>}
+              </button>
+            ))}
+          </nav>
+        )}
 
         {showNewCase && <NewCaseModal onClose={()=>setShowNewCase(false)} onSave={(data)=>{
           const newCase = { ...data, id:"C"+Date.now(), status:"active", medications:[], recommendations:[], notes:[], lastReview:new Date().toISOString().slice(0,10) };
@@ -711,12 +758,14 @@ export default function LessMeds() {
         `}</style>
       </div>
     </ThemeContext.Provider>
+    </MobileContext.Provider>
   );
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function Dashboard({ cases, symptomEntries, onSelect }) {
   const t = useTheme();
+  const isMobile = useIsMobileCtx();
   const highRisk = cases.filter(c => c.score >= 71);
   const avgScore = Math.round(cases.reduce((s,c)=>s+c.score,0)/cases.length);
   const criticalFlags = cases.flatMap(c => c.flags.filter(f=>f.sev==="high").map(f=>({...f,caseName:c.name,caseId:c.id})));
@@ -724,11 +773,11 @@ function Dashboard({ cases, symptomEntries, onSelect }) {
   const severeSymptoms = (symptomEntries||[]).filter(e=>e.symptoms.some(s=>SEVERE_SYMPTOMS.includes(s)));
   return (
     <div>
-      <div style={{ marginBottom:24 }}>
-        <h2 style={{ fontSize:22, fontWeight:700, color:t.textPrimary, margin:0 }}>Clinical Overview</h2>
+      <div style={{ marginBottom: isMobile ? 16 : 24 }}>
+        <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight:700, color:t.textPrimary, margin:0 }}>Clinical Overview</h2>
         <p style={{ color:t.textMuted, fontSize:13, margin:"4px 0 0" }}>Population-level medication risk summary</p>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: isMobile ? 10 : 16, marginBottom: isMobile ? 16 : 24 }}>
         {[
           { label:"Total Cases", value:cases.length, icon:"◈", color:t.accent },
           { label:"High Risk", value:highRisk.length, icon:"🔴", color:t.danger },
@@ -786,7 +835,7 @@ function Dashboard({ cases, symptomEntries, onSelect }) {
       )}
 
       <div style={{ fontWeight:600, color:t.textMuted, fontSize:12, letterSpacing:1, textTransform:"uppercase", marginBottom:12 }}>All Cases</div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: isMobile ? 10 : 16 }}>
         {cases.map(c => <CaseCard key={c.id} caseData={c} onClick={()=>onSelect(c.id)} />)}
       </div>
     </div>
@@ -837,50 +886,74 @@ function CaseCard({ caseData, onClick }) {
 // ─── Cases List ───────────────────────────────────────────────────────────────
 function CasesList({ cases, onSelect, onNew }) {
   const t = useTheme();
+  const isMobile = useIsMobileCtx();
   return (
     <div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: isMobile ? 14 : 20 }}>
         <div>
-          <h2 style={{ fontSize:20, fontWeight:700, color:t.textPrimary, margin:0 }}>Patient Cases</h2>
+          <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight:700, color:t.textPrimary, margin:0 }}>Patient Cases</h2>
           <p style={{ color:t.textMuted, fontSize:13, margin:"2px 0 0" }}>{cases.length} active cases</p>
         </div>
         <ActionBtn onClick={onNew}>+ New Case</ActionBtn>
       </div>
-      <div style={{ background:t.tableBg, border:`1px solid ${t.border}`, borderRadius:12, overflow:"hidden", boxShadow: t.appBg==="#f0f4f8"?"0 1px 4px rgba(0,0,0,0.06)":"none" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse" }}>
-          <thead>
-            <tr style={{ borderBottom:`1px solid ${t.border}`, background: t.appBg==="#f0f4f8" ? t.cardBg2 : "transparent" }}>
-              {["Patient","Age","MRN","Medications","Risk Score","Flags","Last Review",""].map(h=>(
-                <th key={h} style={{ padding:"12px 16px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {cases.map(c=>(
-              <tr key={c.id} style={{ borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
-                onMouseEnter={e=>e.currentTarget.style.background=t.tableRowHover}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                onClick={()=>onSelect(c.id)}>
-                <td style={{ padding:"14px 16px" }}>
-                  <div style={{ fontWeight:600, color:t.textPrimary, fontSize:14 }}>{c.name}</div>
-                  <div style={{ color:t.textMuted, fontSize:11, marginTop:2 }}>{c.physician}</div>
-                </td>
-                <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:13 }}>{c.age}</td>
-                <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:12, fontFamily:"monospace" }}>{c.mrn}</td>
-                <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:13 }}>{c.medications.length}</td>
-                <td style={{ padding:"14px 16px" }}><ScoreBadge score={c.score} /></td>
-                <td style={{ padding:"14px 16px" }}>
-                  {c.flags.filter(f=>f.sev==="high").length > 0 && <span style={{ color:t.danger, fontSize:12, fontWeight:600 }}>🔴 {c.flags.filter(f=>f.sev==="high").length} Critical</span>}
-                  {c.flags.filter(f=>f.sev==="moderate").length > 0 && c.flags.filter(f=>f.sev==="high").length === 0 && <span style={{ color:t.warning, fontSize:12, fontWeight:600 }}>🟡 Moderate</span>}
-                  {c.flags.length === 0 && <span style={{ color:t.success, fontSize:12 }}>✓ Clear</span>}
-                </td>
-                <td style={{ padding:"14px 16px", color:t.textMuted, fontSize:12 }}>{c.lastReview}</td>
-                <td style={{ padding:"14px 16px" }}><ActionBtn onClick={()=>onSelect(c.id)} small>View</ActionBtn></td>
+
+      {/* Mobile: card list */}
+      {isMobile ? (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {cases.map(c=>(
+            <div key={c.id} onClick={()=>onSelect(c.id)}
+              style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding:14, cursor:"pointer", display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, color:t.textPrimary, fontSize:14, marginBottom:2 }}>{c.name}</div>
+                <div style={{ color:t.textMuted, fontSize:11 }}>Age {c.age} · {c.medications.length} meds · {c.lastReview}</div>
+                <div style={{ marginTop:6, display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {c.flags.filter(f=>f.sev==="high").length > 0 && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.dangerBg, color:t.dangerText, fontWeight:700 }}>🔴 {c.flags.filter(f=>f.sev==="high").length} Critical</span>}
+                  {c.flags.filter(f=>f.sev==="moderate").length > 0 && c.flags.filter(f=>f.sev==="high").length===0 && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.warningBg, color:t.warningText, fontWeight:600 }}>🟡 Moderate</span>}
+                  {c.flags.length===0 && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.successBg, color:t.successText, fontWeight:600 }}>✓ Clear</span>}
+                </div>
+              </div>
+              <ScoreBadge score={c.score} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Desktop: full table */
+        <div style={{ background:t.tableBg, border:`1px solid ${t.border}`, borderRadius:12, overflow:"hidden", boxShadow: t.appBg==="#f0f4f8"?"0 1px 4px rgba(0,0,0,0.06)":"none" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead>
+              <tr style={{ borderBottom:`1px solid ${t.border}`, background: t.appBg==="#f0f4f8" ? t.cardBg2 : "transparent" }}>
+                {["Patient","Age","MRN","Medications","Risk Score","Flags","Last Review",""].map(h=>(
+                  <th key={h} style={{ padding:"12px 16px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {cases.map(c=>(
+                <tr key={c.id} style={{ borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=t.tableRowHover}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                  onClick={()=>onSelect(c.id)}>
+                  <td style={{ padding:"14px 16px" }}>
+                    <div style={{ fontWeight:600, color:t.textPrimary, fontSize:14 }}>{c.name}</div>
+                    <div style={{ color:t.textMuted, fontSize:11, marginTop:2 }}>{c.physician}</div>
+                  </td>
+                  <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:13 }}>{c.age}</td>
+                  <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:12, fontFamily:"monospace" }}>{c.mrn}</td>
+                  <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:13 }}>{c.medications.length}</td>
+                  <td style={{ padding:"14px 16px" }}><ScoreBadge score={c.score} /></td>
+                  <td style={{ padding:"14px 16px" }}>
+                    {c.flags.filter(f=>f.sev==="high").length > 0 && <span style={{ color:t.danger, fontSize:12, fontWeight:600 }}>🔴 {c.flags.filter(f=>f.sev==="high").length} Critical</span>}
+                    {c.flags.filter(f=>f.sev==="moderate").length > 0 && c.flags.filter(f=>f.sev==="high").length === 0 && <span style={{ color:t.warning, fontSize:12, fontWeight:600 }}>🟡 Moderate</span>}
+                    {c.flags.length === 0 && <span style={{ color:t.success, fontSize:12 }}>✓ Clear</span>}
+                  </td>
+                  <td style={{ padding:"14px 16px", color:t.textMuted, fontSize:12 }}>{c.lastReview}</td>
+                  <td style={{ padding:"14px 16px" }}><ActionBtn onClick={()=>onSelect(c.id)} small>View</ActionBtn></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -888,35 +961,52 @@ function CasesList({ cases, onSelect, onNew }) {
 // ─── Case Detail ──────────────────────────────────────────────────────────────
 function CaseDetail({ caseData, symptomEntries, pharmacistMode, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
   const t = useTheme();
+  const isMobile = useIsMobileCtx();
   const [showNewMed, setShowNewMed] = useState(false);
   const [showNewRec, setShowNewRec] = useState(false);
   const caseSymptoms = (symptomEntries || []).filter(e => e.caseId === caseData.id);
   const tabs = ["overview","medications","risk-report","recommendations","symptoms","notes"];
   return (
     <div>
-      <button onClick={onBack} style={{ background:"transparent", border:"none", color:t.accent, fontSize:13, cursor:"pointer", marginBottom:16, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:6 }}>
+      <button onClick={onBack} style={{ background:"transparent", border:"none", color:t.accent, fontSize:13, cursor:"pointer", marginBottom:12, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:6 }}>
         ← Back to Cases
       </button>
-      <div style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding:20, marginBottom:20, display:"flex", alignItems:"center", gap:24, boxShadow: t.appBg==="#f0f4f8"?"0 1px 4px rgba(0,0,0,0.06)":"none" }}>
-        <div style={{ width:56, height:56, borderRadius:14, background:"linear-gradient(135deg,#3b82f6,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontWeight:700, color:"#fff", flexShrink:0 }}>
+
+      {/* Patient header — compact on mobile */}
+      <div style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding: isMobile ? 14 : 20, marginBottom: isMobile ? 14 : 20, display:"flex", alignItems:"center", gap: isMobile ? 12 : 24 }}>
+        <div style={{ width: isMobile?40:56, height: isMobile?40:56, borderRadius:14, background:"linear-gradient(135deg,#3b82f6,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center", fontSize: isMobile?16:20, fontWeight:700, color:"#fff", flexShrink:0 }}>
           {caseData.name.split(" ").map(w=>w[0]).join("")}
         </div>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:20, fontWeight:700, color:t.textPrimary }}>{caseData.name}</div>
-          <div style={{ color:t.textMuted, fontSize:13, marginTop:3 }}>Age {caseData.age} · DOB {caseData.dob} · {caseData.mrn} · Physician: {caseData.physician}</div>
-          <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
-            {caseData.conditions.map(c=><span key={c} style={{ fontSize:11, padding:"3px 10px", background:t.chipBg, borderRadius:20, color:t.textSecondary }}>{c}</span>)}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize: isMobile?16:20, fontWeight:700, color:t.textPrimary }}>{caseData.name}</div>
+          <div style={{ color:t.textMuted, fontSize: isMobile?11:13, marginTop:2 }}>
+            Age {caseData.age} · {caseData.mrn}{!isMobile && ` · DOB ${caseData.dob} · Physician: ${caseData.physician}`}
           </div>
+          {!isMobile && (
+            <div style={{ display:"flex", gap:6, marginTop:8, flexWrap:"wrap" }}>
+              {caseData.conditions.map(c=><span key={c} style={{ fontSize:11, padding:"3px 10px", background:t.chipBg, borderRadius:20, color:t.textSecondary }}>{c}</span>)}
+            </div>
+          )}
+          {isMobile && (
+            <div style={{ display:"flex", gap:4, marginTop:6, flexWrap:"wrap" }}>
+              {caseData.conditions.slice(0,2).map(c=><span key={c} style={{ fontSize:10, padding:"2px 7px", background:t.chipBg, borderRadius:20, color:t.textSecondary }}>{c}</span>)}
+              {caseData.conditions.length>2 && <span style={{ fontSize:10, padding:"2px 7px", background:t.chipBg, borderRadius:20, color:t.textMuted }}>+{caseData.conditions.length-2}</span>}
+            </div>
+          )}
         </div>
-        <ScoreBadge score={caseData.score} size="lg" />
+        <ScoreBadge score={caseData.score} size={isMobile?"sm":"lg"} />
       </div>
-      <div style={{ display:"flex", gap:4, marginBottom:20, background:t.cardBg2, border:`1px solid ${t.border}`, borderRadius:10, padding:4 }}>
-        {tabs.map(tb=>(
-          <button key={tb} onClick={()=>setTab(tb)} style={{ flex:1, padding:"8px 4px", borderRadius:7, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:tab===tb?600:400, textTransform:"capitalize",
-            background:tab===tb ? t.accent : "transparent", color:tab===tb ? (t.appBg==="#f0f4f8"?"#fff":t.btnPrimaryText) : t.navText, transition:"all 0.15s" }}>
-            {tb.replace("-"," ")}
-          </button>
-        ))}
+
+      {/* Tab bar — horizontally scrollable on mobile */}
+      <div style={{ overflowX: isMobile ? "auto" : "visible", WebkitOverflowScrolling:"touch", marginBottom: isMobile ? 14 : 20 }}>
+        <div style={{ display:"flex", gap:4, background:t.cardBg2, border:`1px solid ${t.border}`, borderRadius:10, padding:4, minWidth: isMobile ? "max-content" : "auto" }}>
+          {tabs.map(tb=>(
+            <button key={tb} onClick={()=>setTab(tb)} style={{ flex: isMobile ? "none" : 1, padding: isMobile ? "8px 14px" : "8px 4px", borderRadius:7, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:tab===tb?600:400, textTransform:"capitalize", whiteSpace:"nowrap",
+              background:tab===tb ? t.accent : "transparent", color:tab===tb ? (t.appBg==="#f0f4f8"?"#fff":t.btnPrimaryText) : t.navText, transition:"all 0.15s" }}>
+              {tb.replace("-"," ")}
+            </button>
+          ))}
+        </div>
       </div>
       {tab==="overview" && <CaseOverview caseData={caseData} symptoms={caseSymptoms} />}
       {tab==="medications" && <MedicationsTab caseData={caseData} onAdd={onAddMed} onRemove={onRemoveMed} onEdit={onEditMed} showNew={showNewMed} setShowNew={setShowNewMed} currentUser={currentUser} />}
@@ -930,8 +1020,9 @@ function CaseDetail({ caseData, symptomEntries, pharmacistMode, tab, setTab, onB
 
 function CaseOverview({ caseData, symptoms }) {
   const t = useTheme();
+  const isMobile = useIsMobileCtx();
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+    <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 10 : 16 }}>
       <div style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding:20 }}>
         <SectionTitle>Risk Flags Summary</SectionTitle>
         {caseData.flags.length === 0 ? <div style={{ color:t.success, fontSize:13 }}>✓ No flags detected</div> : caseData.flags.map((f,i)=><FlagPill key={i} flag={f}/>)}
@@ -991,6 +1082,7 @@ function CaseOverview({ caseData, symptoms }) {
 
 function MedicationsTab({ caseData, onAdd, onRemove, onEdit, showNew, setShowNew }) {
   const t = useTheme();
+  const isMobile = useIsMobileCtx();
   const [newMed, setNewMed] = useState({ name:"", dose:"", frequency:"Daily", class:"" });
   const [editingMed, setEditingMed] = useState(null);
   const medClasses = ["Anticoagulant","Antidiabetic","ACE Inhibitor","ARB","Statin","Beta Blocker","CCB","Cardiac Glycoside","Diuretic","Antiplatelet","Antiarrhythmic","Antibiotic","Antifungal","Antiviral","SSRI","SNRI","Antipsychotic","Benzodiazepine","Opioid","NSAID","Corticosteroid","Bronchodilator","Bisphosphonate","Thyroid Agent","Supplement","Other"];
@@ -1003,57 +1095,85 @@ function MedicationsTab({ caseData, onAdd, onRemove, onEdit, showNew, setShowNew
         <div style={{ color:t.textMuted, fontSize:13 }}>{caseData.medications.length} medications on record</div>
         <ActionBtn onClick={()=>setShowNew(true)}>+ Add Medication</ActionBtn>
       </div>
-      <div style={{ background:t.tableBg, border:`1px solid ${t.border}`, borderRadius:12, overflow:"hidden", marginBottom:16 }}>
-        <table style={{ width:"100%", borderCollapse:"collapse" }}>
-          <thead>
-            <tr style={{ borderBottom:`1px solid ${t.border}`, background: t.appBg==="#f0f4f8" ? t.cardBg2 : "transparent" }}>
-              {["Medication","Dose","Frequency","Class","Missed","Start Date","Risk","Actions"].map(h=>(
-                <th key={h} style={{ padding:"10px 14px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {caseData.medications.map(m=>{
-              const isHighRisk = HIGH_RISK_DRUGS.includes(m.name);
-              return (
-                <tr key={m.id} style={{ borderBottom:`1px solid ${t.border}` }}>
-                  <td style={{ padding:"12px 14px" }}>
-                    <div style={{ fontWeight:600, color:t.textPrimary, fontSize:13 }}>{m.name}</div>
-                    {isHighRisk && <div style={{ fontSize:10, color:t.danger, marginTop:2 }}>⚠ High-Risk Drug</div>}
-                  </td>
-                  <td style={{ padding:"12px 14px", color:t.textSecondary, fontSize:13 }}>{m.dose}</td>
-                  <td style={{ padding:"12px 14px", color:t.textSecondary, fontSize:13 }}>{m.frequency}</td>
-                  <td style={{ padding:"12px 14px", color:t.textSecondary, fontSize:12 }}>{m.class}</td>
-                  <td style={{ padding:"12px 14px" }}>
-                    <span style={{ color: m.missedDoses>=3?t.danger:m.missedDoses>0?t.warning:t.success, fontSize:13, fontWeight:600 }}>{m.missedDoses}</span>
-                  </td>
-                  <td style={{ padding:"12px 14px", color:t.textMuted, fontSize:12 }}>{m.startDate}</td>
-                  <td style={{ padding:"12px 14px" }}>
-                    {isHighRisk && caseData.age>=65 ? <span style={{ fontSize:12, color:t.danger, fontWeight:600 }}>⚠ Geri</span> : <span style={{color:t.success,fontSize:12}}>✓</span>}
-                  </td>
-                  <td style={{ padding:"12px 14px" }}>
-                    <div style={{ display:"flex", gap:6 }}>
-                      {/* Edit button */}
-                      <button
-                        onClick={()=>setEditingMed({ ...m })}
-                        title="Edit medication"
-                        style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${t.accent}`, background:t.accentBg, color:t.accent, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}>
-                        ✏ Edit
-                      </button>
-                      {/* Remove button */}
-                      <button
-                        onClick={()=>{if(window.confirm(`Remove ${m.name}?`))onRemove(m.id);}}
-                        style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
-                        Remove
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Mobile: medication cards */}
+      {isMobile ? (
+        <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
+          {caseData.medications.map(m=>{
+            const isHighRisk = HIGH_RISK_DRUGS.includes(m.name);
+            return (
+              <div key={m.id} style={{ background:t.cardBg, border:`1px solid ${isHighRisk?t.danger+"44":t.border}`, borderRadius:12, padding:14 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                  <div>
+                    <div style={{ fontWeight:700, color:t.textPrimary, fontSize:14 }}>{m.name}</div>
+                    <div style={{ fontSize:12, color:t.textSecondary, marginTop:2 }}>{m.dose} · {m.frequency}</div>
+                    {m.class && <div style={{ fontSize:11, color:t.textMuted, marginTop:1 }}>{m.class}</div>}
+                  </div>
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 }}>
+                    {isHighRisk && caseData.age>=65
+                      ? <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.dangerBg, color:t.dangerText, fontWeight:700 }}>⚠ Geri Risk</span>
+                      : <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.successBg, color:t.successText }}>✓ OK</span>}
+                    <span style={{ fontSize:11, color: m.missedDoses>=3?t.danger:m.missedDoses>0?t.warning:t.success, fontWeight:600 }}>
+                      {m.missedDoses} missed
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:6 }}>
+                  <button onClick={()=>setEditingMed({...m})} style={{ flex:1, padding:"7px", borderRadius:8, border:`1px solid ${t.accent}`, background:t.accentBg, color:t.accent, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>✏ Edit</button>
+                  <button onClick={()=>{if(window.confirm(`Remove ${m.name}?`))onRemove(m.id);}} style={{ flex:1, padding:"7px", borderRadius:8, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:12, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Remove</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Desktop: full table */
+        <div style={{ background:t.tableBg, border:`1px solid ${t.border}`, borderRadius:12, overflow:"hidden", marginBottom:16 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead>
+              <tr style={{ borderBottom:`1px solid ${t.border}`, background: t.appBg==="#f0f4f8" ? t.cardBg2 : "transparent" }}>
+                {["Medication","Dose","Frequency","Class","Missed","Start Date","Risk","Actions"].map(h=>(
+                  <th key={h} style={{ padding:"10px 14px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {caseData.medications.map(m=>{
+                const isHighRisk = HIGH_RISK_DRUGS.includes(m.name);
+                return (
+                  <tr key={m.id} style={{ borderBottom:`1px solid ${t.border}` }}>
+                    <td style={{ padding:"12px 14px" }}>
+                      <div style={{ fontWeight:600, color:t.textPrimary, fontSize:13 }}>{m.name}</div>
+                      {isHighRisk && <div style={{ fontSize:10, color:t.danger, marginTop:2 }}>⚠ High-Risk Drug</div>}
+                    </td>
+                    <td style={{ padding:"12px 14px", color:t.textSecondary, fontSize:13 }}>{m.dose}</td>
+                    <td style={{ padding:"12px 14px", color:t.textSecondary, fontSize:13 }}>{m.frequency}</td>
+                    <td style={{ padding:"12px 14px", color:t.textSecondary, fontSize:12 }}>{m.class}</td>
+                    <td style={{ padding:"12px 14px" }}>
+                      <span style={{ color: m.missedDoses>=3?t.danger:m.missedDoses>0?t.warning:t.success, fontSize:13, fontWeight:600 }}>{m.missedDoses}</span>
+                    </td>
+                    <td style={{ padding:"12px 14px", color:t.textMuted, fontSize:12 }}>{m.startDate}</td>
+                    <td style={{ padding:"12px 14px" }}>
+                      {isHighRisk && caseData.age>=65 ? <span style={{ fontSize:12, color:t.danger, fontWeight:600 }}>⚠ Geri</span> : <span style={{color:t.success,fontSize:12}}>✓</span>}
+                    </td>
+                    <td style={{ padding:"12px 14px" }}>
+                      <div style={{ display:"flex", gap:6 }}>
+                        <button onClick={()=>setEditingMed({ ...m })} title="Edit medication"
+                          style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${t.accent}`, background:t.accentBg, color:t.accent, fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:4 }}>
+                          ✏ Edit
+                        </button>
+                        <button onClick={()=>{if(window.confirm(`Remove ${m.name}?`))onRemove(m.id);}}
+                          style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:11, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Add Medication Modal */}
       {showNew && (
@@ -1568,18 +1688,27 @@ function ThemedField({ label, children }) {
 
 function ThemedModal({ title, onClose, onSave, children }) {
   const t = useTheme();
+  const isMobile = useIsMobileCtx();
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:24 }}
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", display:"flex",
+        alignItems: isMobile ? "flex-end" : "center", justifyContent:"center",
+        zIndex:100, padding: isMobile ? 0 : 24 }}
       onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
-      <div style={{ background:t.modalBg, border:`1px solid ${t.border}`, borderRadius:16, padding:28, width:"100%", maxWidth:480, boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+      <div style={{ background:t.modalBg, border:`1px solid ${t.border}`,
+          borderRadius: isMobile ? "16px 16px 0 0" : "16px",
+          padding: isMobile ? "20px 20px 36px" : "28px",
+          width:"100%", maxWidth: isMobile ? "100%" : "480px",
+          maxHeight: isMobile ? "88vh" : "85vh", overflowY:"auto",
+          boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
+        {isMobile && <div style={{ width:36, height:4, borderRadius:2, background:t.borderStrong, margin:"0 auto 16px" }}/>}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <div style={{ fontSize:17, fontWeight:700, color:t.textPrimary }}>{title}</div>
           <button onClick={onClose} style={{ background:"transparent", border:"none", color:t.textMuted, fontSize:20, cursor:"pointer", lineHeight:1 }}>×</button>
         </div>
         {children}
-        <div style={{ display:"flex", gap:10, marginTop:20, justifyContent:"flex-end" }}>
-          <button onClick={onClose} style={{ padding:"8px 18px", borderRadius:8, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
-          <button onClick={onSave} style={{ padding:"8px 18px", borderRadius:8, border:"none", background:t.btnPrimary, color:t.btnPrimaryText, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Save</button>
+        <div style={{ display:"flex", gap:10, marginTop:20, justifyContent: isMobile ? "stretch" : "flex-end" }}>
+          <button onClick={onClose} style={{ flex: isMobile?1:0, padding:"10px 18px", borderRadius:8, border:`1px solid ${t.borderStrong}`, background:t.btnSecondaryBg, color:t.textSecondary, fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
+          <button onClick={onSave} style={{ flex: isMobile?1:0, padding:"10px 18px", borderRadius:8, border:"none", background:t.btnPrimary, color:t.btnPrimaryText, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>Save</button>
         </div>
       </div>
     </div>
