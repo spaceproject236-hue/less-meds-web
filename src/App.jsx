@@ -700,7 +700,7 @@ function CaseOverview({ caseData }) {
 function MedicationsTab({ caseData, onAdd, onRemove, showNew, setShowNew }) {
   const t = useTheme();
   const [newMed, setNewMed] = useState({ name:"", dose:"", frequency:"Daily", class:"" });
-  const medClasses = ["Anticoagulant","Antidiabetic","ACE Inhibitor","Statin","Beta Blocker","CCB","Diuretic","Antiplatelet","SSRI","Opioid","Bronchodilator","Bisphosphonate","Supplement","Other"];
+  const medClasses = ["Anticoagulant","Antidiabetic","ACE Inhibitor","ARB","Statin","Beta Blocker","CCB","Cardiac Glycoside","Diuretic","Antiplatelet","Antiarrhythmic","Antibiotic","Antifungal","Antiviral","SSRI","SNRI","Antipsychotic","Benzodiazepine","Opioid","NSAID","Corticosteroid","Bronchodilator","Bisphosphonate","Thyroid Agent","Supplement","Other"];
   const inputStyle = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${t.border}`, background:t.inputBg, color:t.textPrimary, fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" };
   return (
     <div>
