@@ -525,6 +525,7 @@ export default function LessMeds() {
   const [showNewCase, setShowNewCase] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [symptomEntries, setSymptomEntries] = useState([]);
+  const [pharmacistMode, setPharmacistMode] = useState(true);
 
   // Subscribe to shared symptom store — simulates real-time sync from mobile app
   React.useEffect(() => {
@@ -672,16 +673,16 @@ export default function LessMeds() {
             {activeNav==="dashboard" && !selectedCase && <Dashboard cases={casesWithScores} symptomEntries={symptomEntries} onSelect={id=>{setSelectedCase(id);setActiveNav("cases");setCaseTab("overview");}} />}
             {activeNav==="cases" && !selectedCase && <CasesList cases={casesWithScores} onSelect={id=>{setSelectedCase(id);setCaseTab("overview");}} onNew={()=>setShowNewCase(true)} />}
             {activeNav==="cases" && selectedCase && selectedCaseData && (
-              <CaseDetail caseData={selectedCaseData} symptomEntries={symptomEntries} tab={caseTab} setTab={setCaseTab} onBack={()=>setSelectedCase(null)}
+              <CaseDetail caseData={selectedCaseData} symptomEntries={symptomEntries} pharmacistMode={pharmacistMode} tab={caseTab} setTab={setCaseTab} onBack={()=>setSelectedCase(null)}
                 onApprove={(rid)=>approveRec(selectedCase,rid)} onReject={(rid)=>rejectRec(selectedCase,rid)}
                 onAddMed={med=>addMedication(selectedCase,med)} onRemoveMed={mid=>removeMedication(selectedCase,mid)}
                 onEditMed={med=>editMedication(selectedCase,med)}
                 onAddRec={rec=>addRecommendation(selectedCase,rec)} currentUser={currentUser} />
             )}
-            {activeNav==="recommendations" && <AllRecommendations cases={casesWithScores} onApprove={approveRec} onReject={rejectRec} currentUser={currentUser} />}
+            {activeNav==="recommendations" && <AllRecommendations cases={casesWithScores} onApprove={approveRec} onReject={rejectRec} currentUser={currentUser} pharmacistMode={pharmacistMode} />}
             {activeNav==="reports" && <Reports cases={casesWithScores} />}
             {activeNav==="audit" && <AuditLogView log={auditLog} />}
-            {activeNav==="settings" && <SettingsView themeName={themeName} setThemeName={setThemeName} />}
+            {activeNav==="settings" && <SettingsView themeName={themeName} setThemeName={setThemeName} pharmacistMode={pharmacistMode} setPharmacistMode={setPharmacistMode} />}
           </div>
         </main>
 
@@ -885,7 +886,7 @@ function CasesList({ cases, onSelect, onNew }) {
 }
 
 // ─── Case Detail ──────────────────────────────────────────────────────────────
-function CaseDetail({ caseData, symptomEntries, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
+function CaseDetail({ caseData, symptomEntries, pharmacistMode, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
   const t = useTheme();
   const [showNewMed, setShowNewMed] = useState(false);
   const [showNewRec, setShowNewRec] = useState(false);
@@ -920,7 +921,7 @@ function CaseDetail({ caseData, symptomEntries, tab, setTab, onBack, onApprove, 
       {tab==="overview" && <CaseOverview caseData={caseData} symptoms={caseSymptoms} />}
       {tab==="medications" && <MedicationsTab caseData={caseData} onAdd={onAddMed} onRemove={onRemoveMed} onEdit={onEditMed} showNew={showNewMed} setShowNew={setShowNewMed} currentUser={currentUser} />}
       {tab==="risk-report" && <RiskReport caseData={caseData} />}
-      {tab==="recommendations" && <RecommendationsTab caseData={caseData} onApprove={onApprove} onReject={onReject} onAdd={onAddRec} showNew={showNewRec} setShowNew={setShowNewRec} currentUser={currentUser} />}
+      {tab==="recommendations" && <RecommendationsTab caseData={caseData} onApprove={onApprove} onReject={onReject} onAdd={onAddRec} showNew={showNewRec} setShowNew={setShowNewRec} currentUser={currentUser} pharmacistMode={pharmacistMode} />}
       {tab==="symptoms" && <SymptomsTab caseData={caseData} symptoms={caseSymptoms} />}
       {tab==="notes" && <EmptyState>No clinical notes recorded. Notes feature coming in Phase 2.</EmptyState>}
     </div>
@@ -1149,15 +1150,33 @@ function RiskReport({ caseData }) {
   );
 }
 
-function RecommendationsTab({ caseData, onApprove, onReject, onAdd, showNew, setShowNew, currentUser }) {
+function RecommendationsTab({ caseData, onApprove, onReject, onAdd, showNew, setShowNew, currentUser, pharmacistMode }) {
   const t = useTheme();
   const [newRec, setNewRec] = useState({ drug:"", action:"Deprescribe", reason:"" });
   const inputStyle = { width:"100%", padding:"9px 12px", borderRadius:8, border:`1px solid ${t.border}`, background:t.inputBg, color:t.textPrimary, fontSize:13, fontFamily:"'DM Sans',sans-serif", outline:"none", boxSizing:"border-box" };
+  // In pharmacist-off mode, the physician can propose directly; the "pending review" step is skipped
+  const proposeLabel = pharmacistMode ? "+ Propose Recommendation" : "+ Add Recommendation";
   return (
     <div>
+      {/* Workflow mode banner */}
+      <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", borderRadius:10, marginBottom:16,
+        background: pharmacistMode ? t.accentBg : t.successBg,
+        border: `1px solid ${pharmacistMode ? t.accent+"44" : t.successBorder}` }}>
+        <span style={{ fontSize:16 }}>{pharmacistMode ? "⚗" : "👤"}</span>
+        <div>
+          <div style={{ fontSize:12, fontWeight:700, color: pharmacistMode ? t.accent : t.successText }}>
+            {pharmacistMode ? "Pharmacist Review Mode" : "Physician-Only Mode"}
+          </div>
+          <div style={{ fontSize:11, color:t.textMuted, marginTop:1 }}>
+            {pharmacistMode
+              ? "Pharmacist proposes → Physician approves. Change this in Settings."
+              : "Physician creates and approves recommendations directly. Change in Settings."}
+          </div>
+        </div>
+      </div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
         <div style={{ color:t.textMuted, fontSize:13 }}>{caseData.recommendations.filter(r=>r.status==="pending").length} pending review</div>
-        <ActionBtn onClick={()=>setShowNew(true)}>+ Propose Recommendation</ActionBtn>
+        <ActionBtn onClick={()=>setShowNew(true)}>{proposeLabel}</ActionBtn>
       </div>
       {caseData.recommendations.length === 0 && <EmptyState>No recommendations yet.</EmptyState>}
       {caseData.recommendations.map(r=>(
@@ -1173,7 +1192,7 @@ function RecommendationsTab({ caseData, onApprove, onReject, onAdd, showNew, set
           </div>
           <p style={{ color:t.textSecondary, fontSize:13, margin:"0 0 12px", lineHeight:1.6 }}>{r.reason}</p>
           <div style={{ fontSize:12, color:t.textMuted, marginBottom:12 }}>Proposed by {r.proposedBy} on {r.createdAt}</div>
-          {r.status==="pending" && currentUser.role==="physician" && (
+          {r.status==="pending" && (
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={()=>onApprove(r.id)} style={{ padding:"6px 16px", borderRadius:7, border:`1px solid ${t.success}`, background:t.successBg, color:t.successText, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>✓ Approve</button>
               <button onClick={()=>onReject(r.id)} style={{ padding:"6px 16px", borderRadius:7, border:`1px solid ${t.danger}`, background:t.dangerBg, color:t.dangerText, fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>✗ Reject</button>
@@ -1193,14 +1212,23 @@ function RecommendationsTab({ caseData, onApprove, onReject, onAdd, showNew, set
   );
 }
 
-function AllRecommendations({ cases, onApprove, onReject, currentUser }) {
+function AllRecommendations({ cases, onApprove, onReject, currentUser, pharmacistMode }) {
   const t = useTheme();
   const all = cases.flatMap(c => c.recommendations.map(r=>({...r,caseName:c.name,caseId:c.id})));
   const pending = all.filter(r=>r.status==="pending");
   return (
     <div>
       <h2 style={{ fontSize:20, fontWeight:700, color:t.textPrimary, margin:"0 0 6px" }}>Recommendations</h2>
-      <p style={{ color:t.textMuted, fontSize:13, margin:"0 0 20px" }}>{pending.length} pending physician review</p>
+      <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", borderRadius:10, marginBottom:20,
+        background: pharmacistMode ? t.accentBg : t.successBg,
+        border: `1px solid ${pharmacistMode ? t.accent+"44" : t.successBorder}` }}>
+        <span style={{ fontSize:16 }}>{pharmacistMode ? "⚗" : "👤"}</span>
+        <span style={{ fontSize:13, color:t.textSecondary }}>
+          {pharmacistMode
+            ? `${pending.length} recommendation${pending.length!==1?"s":""} awaiting physician review — proposed by pharmacist`
+            : `${pending.length} recommendation${pending.length!==1?"s":""} pending — Physician-Only mode active`}
+        </span>
+      </div>
       {pending.length === 0 && <EmptyState>No pending recommendations.</EmptyState>}
       {pending.map(r=>(
         <div key={r.id} style={{ background:t.cardBg, border:`1px solid ${t.warningBorder}`, borderRadius:12, padding:20, marginBottom:12 }}>
@@ -1399,12 +1427,67 @@ function AuditLogView({ log }) {
 }
 
 // ─── Settings with Theme Switcher ─────────────────────────────────────────────
-function SettingsView({ themeName, setThemeName }) {
+function SettingsView({ themeName, setThemeName, pharmacistMode, setPharmacistMode }) {
   const t = useTheme();
   return (
     <div>
       <h2 style={{ fontSize:20, fontWeight:700, color:t.textPrimary, margin:"0 0 6px" }}>Settings</h2>
       <p style={{ color:t.textMuted, fontSize:13, margin:"0 0 24px" }}>Organization settings and compliance configuration</p>
+
+      {/* Workflow Mode Card */}
+      <div style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding:20, marginBottom:16, boxShadow: t.appBg==="#f0f4f8"?"0 1px 4px rgba(0,0,0,0.06)":"none" }}>
+        <SectionTitle>Recommendation Workflow</SectionTitle>
+        <p style={{ color:t.textSecondary, fontSize:13, margin:"0 0 16px", lineHeight:1.6 }}>
+          Choose how medication recommendations are created and approved in your practice.
+        </p>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          {[
+            {
+              key: true,
+              icon: "⚗",
+              title: "Pharmacist + Physician",
+              desc: "Pharmacist proposes recommendations. Physician reviews and approves or rejects. Best for larger practices or health systems with a pharmacy team.",
+              tags: ["Dual review", "Highest safety", "Recommended"],
+            },
+            {
+              key: false,
+              icon: "👤",
+              title: "Physician Only",
+              desc: "Physician creates and immediately approves recommendations directly. Best for solo or small practices without a dedicated pharmacist on staff.",
+              tags: ["Streamlined", "Fewer steps", "Solo-friendly"],
+            },
+          ].map(opt => (
+            <button key={String(opt.key)} onClick={()=>setPharmacistMode(opt.key)}
+              style={{ padding:"18px", borderRadius:12, textAlign:"left", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"all 0.2s",
+                border:`2px solid ${pharmacistMode===opt.key ? t.accent : t.border}`,
+                background: pharmacistMode===opt.key ? t.accentBg : t.cardBg2 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background: pharmacistMode===opt.key ? t.accent+"22" : t.chipBg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, border:`1px solid ${pharmacistMode===opt.key?t.accent+"44":t.border}` }}>
+                  {opt.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color:t.textPrimary }}>{opt.title}</div>
+                  {pharmacistMode===opt.key && <div style={{ fontSize:10, color:t.accent, fontWeight:600, marginTop:1 }}>✓ ACTIVE</div>}
+                </div>
+              </div>
+              <div style={{ fontSize:12, color:t.textSecondary, lineHeight:1.5, marginBottom:10 }}>{opt.desc}</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {opt.tags.map(tag=>(
+                  <span key={tag} style={{ fontSize:10, padding:"2px 8px", borderRadius:20,
+                    background: pharmacistMode===opt.key ? t.accent+"22" : t.chipBg,
+                    color: pharmacistMode===opt.key ? t.accent : t.textMuted,
+                    border:`1px solid ${pharmacistMode===opt.key?t.accent+"44":t.border}`, fontWeight:600 }}>{tag}</span>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+        {!pharmacistMode && (
+          <div style={{ marginTop:12, padding:"10px 14px", borderRadius:8, background:t.warningBg, border:`1px solid ${t.warningBorder}` }}>
+            <span style={{ fontSize:12, color:t.warningText }}>⚠ In Physician-Only mode, recommendations are approved immediately without a second clinical review. Ensure your practice has appropriate oversight procedures in place.</span>
+          </div>
+        )}
+      </div>
 
       {/* Theme Switcher Card */}
       <div style={{ background:t.cardBg, border:`1px solid ${t.accent}44`, borderRadius:12, padding:20, marginBottom:16, boxShadow: t.appBg==="#f0f4f8"?"0 1px 4px rgba(0,0,0,0.06)":"none" }}>
