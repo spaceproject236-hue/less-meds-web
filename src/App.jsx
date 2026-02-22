@@ -773,7 +773,7 @@ function Dashboard({ cases, symptomEntries, onSelect }) {
             <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:`1px solid ${t.border}` }}>
               <div>
                 <span style={{ color:t.textPrimary, fontSize:13, fontWeight:600 }}>{e.patientName}</span>
-                <span style={{ color:t.textMuted, fontSize:12 }}> — {e.symptoms.slice(0,3).join(", ")}{e.symptoms.length>3?` +${e.symptoms.length-3} more":""}</span>
+                <span style={{ color:t.textMuted, fontSize:12 }}> — {e.symptoms.slice(0,3).join(", ")}{e.symptoms.length>3?` +${e.symptoms.length-3} more`:""}</span>
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                 <span style={{ fontSize:11, color:t.textMuted }}>{e.time}</span>
