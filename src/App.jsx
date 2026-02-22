@@ -628,7 +628,6 @@ export default function LessMeds() {
 
   return (
     <MobileContext.Provider value={isMobile}>
-    <MobileContext.Provider value={isMobile}>
     <ThemeContext.Provider value={t}>
       <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", height:"100vh", background:t.appBg, color:t.textPrimary, fontFamily:"'DM Sans', sans-serif", overflow:"hidden" }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;700;800&display=swap" rel="stylesheet"/>
