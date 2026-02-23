@@ -2218,7 +2218,8 @@ function FocusSelect({ style: extra, ...props }) {
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 
-function Logo({ size = "md" }) {
+function Logo({ size = "md", siteTheme = "dark" }) {
+  const dark = siteTheme !== "light";
   const sz = size === "sm" ? 22 : 28;
   const fsz = size === "sm" ? 17 : 21;
   return (
@@ -2226,7 +2227,7 @@ function Logo({ size = "md" }) {
       <div style={{ width: sz, height: sz, borderRadius: sz * 0.28, background: "linear-gradient(135deg,#06b6d4 0%,#2563eb 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: sz * 0.55, flexShrink: 0, boxShadow: "0 0 16px rgba(6,182,212,0.4)" }}>
         💊
       </div>
-      <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: fsz, letterSpacing: -0.5, color: "#f1f5f9", lineHeight: 1 }}>
+      <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: fsz, letterSpacing: -0.5, color: dark ? "#f1f5f9" : "#0f172a", lineHeight: 1 }}>
         Less<span style={{ color: "#06b6d4" }}>Meds</span>
       </span>
     </div>
@@ -2267,28 +2268,43 @@ function Stepper({ steps, current }) {
 
 // ─── Marketing Nav ────────────────────────────────────────────────────────────
 
-function MarketingNav({ onClinicianSignup, onConsumer }) {
+function MarketingNav({ onClinicianSignup, onConsumer, onPharmacist, siteTheme, setSiteTheme }) {
   const [scrolled, setScrolled] = React.useState(false);
+  const dark = siteTheme === "dark";
   React.useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
+  const navBg = scrolled
+    ? dark ? "rgba(4,10,22,0.95)" : "rgba(248,250,252,0.95)"
+    : "transparent";
+  const borderC = scrolled ? (dark ? "#1e3a5f" : "#e2e8f0") : "transparent";
+
   return (
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-      background: scrolled ? "rgba(4,10,22,0.95)" : "transparent",
-      backdropFilter: scrolled ? "blur(14px)" : "none",
-      borderBottom: scrolled ? "1px solid #1e3a5f" : "1px solid transparent",
-      transition: "all 0.3s", padding: "0 32px",
+      background: navBg, backdropFilter: scrolled ? "blur(14px)" : "none",
+      borderBottom: `1px solid ${borderC}`, transition: "all 0.3s", padding: "0 32px",
     }}>
       <div style={{ maxWidth: 1160, margin: "0 auto", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Logo />
+        <Logo siteTheme={siteTheme} />
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={onConsumer} style={{ padding: "8px 18px", background: "transparent", border: "1px solid #1e3a5f", borderRadius: 8, color: "#94a3b8", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}
+          {/* Theme toggle */}
+          <button onClick={() => setSiteTheme(dark ? "light" : "dark")}
+            title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${dark ? "#1e3a5f" : "#e2e8f0"}`, background: dark ? "#071428" : "#f1f5f9", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, transition: "all 0.2s", flexShrink: 0 }}>
+            {dark ? "☀️" : "🌙"}
+          </button>
+          <button onClick={onPharmacist} style={{ padding: "8px 14px", background: "transparent", border: `1px solid ${dark ? "#1e3a5f" : "#e2e8f0"}`, borderRadius: 8, color: dark ? "#94a3b8" : "#475569", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8b5cf6"; e.currentTarget.style.color = "#8b5cf6"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = dark ? "#1e3a5f" : "#e2e8f0"; e.currentTarget.style.color = dark ? "#94a3b8" : "#475569"; }}>
+            For Pharmacists
+          </button>
+          <button onClick={onConsumer} style={{ padding: "8px 14px", background: "transparent", border: `1px solid ${dark ? "#1e3a5f" : "#e2e8f0"}`, borderRadius: 8, color: dark ? "#94a3b8" : "#475569", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "#06b6d4"; e.currentTarget.style.color = "#06b6d4"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#94a3b8"; }}>
+            onMouseLeave={e => { e.currentTarget.style.borderColor = dark ? "#1e3a5f" : "#e2e8f0"; e.currentTarget.style.color = dark ? "#94a3b8" : "#475569"; }}>
             For Families
           </button>
           <button onClick={onClinicianSignup} style={{ padding: "9px 20px", background: "#06b6d4", border: "none", borderRadius: 8, color: "#001a24", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 0 24px rgba(6,182,212,0.35)", transition: "all 0.15s" }}
@@ -2304,29 +2320,27 @@ function MarketingNav({ onClinicianSignup, onConsumer }) {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function HeroSection({ onClinicianSignup, onConsumer }) {
+function HeroSection({ onClinicianSignup, onConsumer, st }) {
   return (
-    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "100px 24px 80px", position: "relative", overflow: "hidden" }}>
-      {/* Grid background */}
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(30,58,95,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(30,58,95,0.18) 1px, transparent 1px)", backgroundSize: "48px 48px", pointerEvents: "none" }} />
-      {/* Glow orbs */}
-      <div style={{ position: "absolute", top: "18%", left: "8%", width: 600, height: 600, background: "radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "15%", right: "6%", width: 500, height: 500, background: "radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "100px 24px 80px", position: "relative", overflow: "hidden", background: st.pageBg, transition: "background 0.3s" }}>
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `linear-gradient(${st.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${st.gridLine} 1px, transparent 1px)`, backgroundSize: "48px 48px", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: "18%", left: "8%", width: 600, height: 600, background: `radial-gradient(circle, ${st.glow1} 0%, transparent 65%)`, borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "15%", right: "6%", width: 500, height: 500, background: `radial-gradient(circle, ${st.glow2} 0%, transparent 65%)`, borderRadius: "50%", pointerEvents: "none" }} />
 
       <div style={{ maxWidth: 820, textAlign: "center", position: "relative" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 30, padding: "6px 18px", marginBottom: 36, fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: st.accentSoft, border: `1px solid ${st.accentBorder}`, borderRadius: 30, padding: "6px 18px", marginBottom: 36 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#06b6d4", display: "inline-block", animation: "lm-pulse 2s ease-in-out infinite" }} />
           <span style={{ fontSize: 12, color: "#06b6d4", fontWeight: 600, letterSpacing: 0.5 }}>HIPAA Compliant · Now in early access</span>
         </div>
 
-        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(40px,6.5vw,78px)", fontWeight: 900, lineHeight: 1.06, letterSpacing: -2.5, color: "#f1f5f9", margin: "0 0 28px" }}>
+        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(40px,6.5vw,78px)", fontWeight: 900, lineHeight: 1.06, letterSpacing: -2.5, color: st.textPrimary, margin: "0 0 28px", transition: "color 0.3s" }}>
           Safer medication<br />
           <span style={{ background: "linear-gradient(100deg,#06b6d4 0%,#2563eb 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
             management.
           </span>
         </h1>
 
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "clamp(16px,2.2vw,21px)", color: "#64748b", lineHeight: 1.75, maxWidth: 580, margin: "0 auto 52px", fontWeight: 400 }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "clamp(16px,2.2vw,21px)", color: st.textMuted, lineHeight: 1.75, maxWidth: 580, margin: "0 auto 52px", fontWeight: 400, transition: "color 0.3s" }}>
           LessMeds helps family practices and health systems detect dangerous drug combinations, coordinate deprescribing, and keep families informed — in one clinical workflow.
         </p>
 
@@ -2336,19 +2350,19 @@ function HeroSection({ onClinicianSignup, onConsumer }) {
             onMouseLeave={e => { e.currentTarget.style.background = "#06b6d4"; e.currentTarget.style.transform = "none"; }}>
             Start free trial — clinicians →
           </button>
-          <button onClick={onConsumer} style={{ padding: "16px 38px", background: "transparent", border: "1.5px solid #1e3a5f", borderRadius: 10, color: "#94a3b8", fontSize: 16, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.color = "#e2e8f0"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#94a3b8"; }}>
+          <button onClick={onConsumer} style={{ padding: "16px 38px", background: "transparent", border: `1.5px solid ${st.border}`, borderRadius: 10, color: st.textSecondary, fontSize: 16, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.color = st.textPrimary; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = st.border; e.currentTarget.style.color = st.textSecondary; }}>
             Free medication check →
           </button>
         </div>
 
         <div style={{ marginTop: 64, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#334155", letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>Integrates with</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: st.textMuted, letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>Integrates with</span>
           {["Epic", "Cerner", "athenahealth", "NextGen", "eClinicalWorks"].map(name => (
-            <span key={name} style={{ padding: "4px 12px", background: "rgba(30,58,95,0.5)", border: "1px solid #1e3a5f", borderRadius: 6, fontSize: 11, color: "#475569", fontFamily: "'DM Sans', sans-serif" }}>{name}</span>
+            <span key={name} style={{ padding: "4px 12px", background: st.accentSoft, border: `1px solid ${st.border}`, borderRadius: 6, fontSize: 11, color: st.textMuted, fontFamily: "'DM Sans', sans-serif", transition: "all 0.3s" }}>{name}</span>
           ))}
-          <span style={{ fontSize: 11, color: "#334155", fontFamily: "'DM Sans', sans-serif" }}>+ more</span>
+          <span style={{ fontSize: 11, color: st.textDim, fontFamily: "'DM Sans', sans-serif" }}>+ more</span>
         </div>
       </div>
     </section>
@@ -2357,14 +2371,14 @@ function HeroSection({ onClinicianSignup, onConsumer }) {
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 
-function StatsBar() {
+function StatsBar({ st }) {
   return (
-    <div style={{ background: "#071428", borderTop: "1px solid #1e3a5f", borderBottom: "1px solid #1e3a5f", padding: "52px 24px" }}>
+    <div style={{ background: st.pageBg2, borderTop: `1px solid ${st.border}`, borderBottom: `1px solid ${st.border}`, padding: "52px 24px", transition: "background 0.3s" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: 32, textAlign: "center" }}>
         {STATS.map(s => (
           <div key={s.n}>
             <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: "#06b6d4", letterSpacing: -2, lineHeight: 1 }}>{s.n}</div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#64748b", marginTop: 8 }}>{s.label}</div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: st.textMuted, marginTop: 8 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -2374,7 +2388,7 @@ function StatsBar() {
 
 // ─── Features ─────────────────────────────────────────────────────────────────
 
-function FeaturesSection() {
+function FeaturesSection({ st }) {
   const features = [
     { icon: "◎", color: "#06b6d4", title: "Automated risk scoring", body: "Every patient gets a dynamic polypharmacy risk score — recalculated in real time from medication count, interactions, Beers Criteria flags, and missed dose patterns." },
     { icon: "⚗", color: "#818cf8", title: "Pharmacist + physician workflow", body: "Pharmacists propose deprescribing recommendations. Physicians review and approve with one click. Full audit trail for every decision." },
@@ -2384,22 +2398,22 @@ function FeaturesSection() {
     { icon: "▣", color: "#38bdf8", title: "HIPAA audit log", body: "Every recommendation, approval, and edit is timestamped and attributed. Compliance documentation is always up to date." },
   ];
   return (
-    <section style={{ padding: "100px 24px", background: "#040a16" }}>
+    <section style={{ padding: "100px 24px", background: st.pageBg, transition: "background 0.3s" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 68 }}>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#06b6d4", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>What's included</p>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: 0, lineHeight: 1.1 }}>
-            Built for the clinical team.<br /><span style={{ color: "#334155", fontWeight: 300 }}>Not just the administrator.</span>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 900, letterSpacing: -1.5, color: st.textPrimary, margin: 0, lineHeight: 1.1, transition: "color 0.3s" }}>
+            Built for the clinical team.<br /><span style={{ color: st.textDim, fontWeight: 300 }}>Not just the administrator.</span>
           </h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
           {features.map(f => (
-            <div key={f.title} style={{ background: "#071428", border: "1px solid #1e3a5f", borderRadius: 16, padding: 28, transition: "all 0.2s", cursor: "default" }}
+            <div key={f.title} style={{ background: st.cardBg, border: `1px solid ${st.border}`, borderRadius: 16, padding: 28, transition: "all 0.2s", cursor: "default" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = f.color + "66"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.transform = "none"; }}>
+              onMouseLeave={e => { e.currentTarget.style.borderColor = st.border; e.currentTarget.style.transform = "none"; }}>
               <div style={{ width: 46, height: 46, borderRadius: 12, background: f.color + "18", border: `1px solid ${f.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 20 }}>{f.icon}</div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: "#f1f5f9", marginBottom: 10 }}>{f.title}</div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#475569", lineHeight: 1.75 }}>{f.body}</div>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: st.textPrimary, marginBottom: 10 }}>{f.title}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: st.textMuted, lineHeight: 1.75 }}>{f.body}</div>
             </div>
           ))}
         </div>
@@ -2410,24 +2424,24 @@ function FeaturesSection() {
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 
-function TestimonialsSection() {
+function TestimonialsSection({ st }) {
   return (
-    <section style={{ padding: "100px 24px", background: "#071428", borderTop: "1px solid #1e3a5f" }}>
+    <section style={{ padding: "100px 24px", background: st.pageBg2, borderTop: `1px solid ${st.border}`, transition: "background 0.3s" }}>
       <div style={{ maxWidth: 1060, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 60 }}>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#818cf8", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>From the field</p>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: 0 }}>Trusted by clinicians who care.</h2>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: st.textPrimary, margin: 0, transition: "color 0.3s" }}>Trusted by clinicians who care.</h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
           {TESTIMONIALS.map(t => (
-            <div key={t.name} style={{ background: "#040a16", border: "1px solid #1e3a5f", borderRadius: 16, padding: 30 }}>
+            <div key={t.name} style={{ background: st.cardBg2, border: `1px solid ${st.border}`, borderRadius: 16, padding: 30, transition: "background 0.3s" }}>
               <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, color: "#06b6d4", lineHeight: 1, marginBottom: 18, opacity: 0.6 }}>"</div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#94a3b8", lineHeight: 1.85, margin: "0 0 28px", fontStyle: "italic" }}>{t.quote}</p>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: st.textSecondary, lineHeight: 1.85, margin: "0 0 28px", fontStyle: "italic" }}>{t.quote}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#2563eb,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{t.initials}</div>
                 <div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{t.name}</div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#475569" }}>{t.role}</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: st.textPrimary }}>{t.name}</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: st.textMuted }}>{t.role}</div>
                 </div>
               </div>
             </div>
@@ -2440,34 +2454,34 @@ function TestimonialsSection() {
 
 // ─── Pricing Section ──────────────────────────────────────────────────────────
 
-function PricingSection({ onSelectPlan }) {
+function PricingSection({ onSelectPlan, st }) {
   return (
-    <section id="pricing" style={{ padding: "100px 24px 80px", background: "#040a16" }}>
+    <section id="pricing" style={{ padding: "100px 24px 80px", background: st.pageBg, transition: "background 0.3s" }}>
       <div style={{ maxWidth: 1220, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 60 }}>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#06b6d4", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>Transparent pricing</p>
-          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: "0 0 14px" }}>Plans for every practice size.</h2>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: "#475569", margin: 0 }}>14-day free trial. No credit card required. Cancel anytime.</p>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 900, letterSpacing: -1.5, color: st.textPrimary, margin: "0 0 14px", transition: "color 0.3s" }}>Plans for every practice size.</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: st.textMuted, margin: 0 }}>14-day free trial. No credit card required. Cancel anytime.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 16, alignItems: "start" }}>
           {PLANS.map(plan => (
-            <div key={plan.id} style={{ position: "relative", background: "#071428", border: `2px solid ${plan.highlight ? plan.color : "#1e3a5f"}`, borderRadius: 18, padding: "28px 24px", transition: "all 0.2s", cursor: "pointer" }}
+            <div key={plan.id} style={{ position: "relative", background: st.cardBg, border: `2px solid ${plan.highlight ? plan.color : st.border}`, borderRadius: 18, padding: "28px 24px", transition: "all 0.2s", cursor: "pointer" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 20px 48px ${plan.color}1a`; e.currentTarget.style.borderColor = plan.color; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = plan.highlight ? plan.color : "#1e3a5f"; }}>
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = plan.highlight ? plan.color : st.border; }}>
 
               {plan.highlight && (
                 <div style={{ position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: plan.color, color: "#001a24", fontSize: 10, fontWeight: 800, padding: "4px 16px", borderRadius: 20, whiteSpace: "nowrap", letterSpacing: 0.8, fontFamily: "'DM Sans', sans-serif" }}>MOST POPULAR</div>
               )}
 
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: plan.color, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{plan.seats}</div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 800, color: "#f1f5f9", marginBottom: 2 }}>{plan.name}</div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#475569", marginBottom: 20 }}>{plan.tagline}</div>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 800, color: st.textPrimary, marginBottom: 2 }}>{plan.name}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: st.textMuted, marginBottom: 20 }}>{plan.tagline}</div>
 
-              <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 20, marginBottom: 20 }}>
+              <div style={{ borderTop: `1px solid ${st.border}`, paddingTop: 20, marginBottom: 20 }}>
                 {plan.price ? (
                   <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                     <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 40, fontWeight: 900, color: plan.color, letterSpacing: -2, lineHeight: 1 }}>${plan.price.toLocaleString()}</span>
-                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#475569" }}>/mo</span>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: st.textMuted }}>/mo</span>
                   </div>
                 ) : (
                   <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 30, fontWeight: 900, color: plan.color }}>Custom</div>
@@ -2476,7 +2490,7 @@ function PricingSection({ onSelectPlan }) {
 
               <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 9 }}>
                 {plan.features.map(f => (
-                  <li key={f} style={{ display: "flex", gap: 9, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#64748b", alignItems: "flex-start", lineHeight: 1.4 }}>
+                  <li key={f} style={{ display: "flex", gap: 9, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: st.textSecondary, alignItems: "flex-start", lineHeight: 1.4 }}>
                     <span style={{ color: plan.color, flexShrink: 0, fontWeight: 700, marginTop: 0 }}>✓</span>{f}
                   </li>
                 ))}
@@ -2489,7 +2503,7 @@ function PricingSection({ onSelectPlan }) {
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", textAlign: "center", color: "#334155", fontSize: 13, marginTop: 40 }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", textAlign: "center", color: st.textDim, fontSize: 13, marginTop: 40 }}>
           All plans include HIPAA-compliant data handling, AES-256 encryption, and caregiver mobile app access.
         </p>
       </div>
@@ -2499,16 +2513,16 @@ function PricingSection({ onSelectPlan }) {
 
 // ─── Consumer CTA ──────────────────────────────────────────────────────────────
 
-function ConsumerSection() {
+function ConsumerSection({ st }) {
   return (
-    <section style={{ padding: "100px 24px", background: "#071428", borderTop: "1px solid #1e3a5f" }}>
+    <section style={{ padding: "100px 24px", background: st.pageBg2, borderTop: `1px solid ${st.border}`, transition: "background 0.3s" }}>
       <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center" }}>
         <div style={{ width: 64, height: 64, borderRadius: 18, background: "linear-gradient(135deg,#34d399,#059669)", margin: "0 auto 28px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: "0 0 32px rgba(52,211,153,0.25)" }}>📱</div>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#34d399", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>For families & caregivers</p>
-        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: "0 0 20px", lineHeight: 1.12 }}>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: st.textPrimary, margin: "0 0 20px", lineHeight: 1.12, transition: "color 0.3s" }}>
           Free medication safety check.
         </h2>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: "#475569", lineHeight: 1.8, margin: "0 0 44px" }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: st.textMuted, lineHeight: 1.8, margin: "0 0 44px" }}>
           Enter any medication list and get an instant risk score — no account needed. If your physician uses LessMeds, the app connects directly to their care team for real-time coordination.
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 30 }}>
@@ -2518,18 +2532,18 @@ function ConsumerSection() {
           ].map(btn => (
             <a key={btn.label} href="#" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 24px", background: "#040a16", border: "1.5px solid #1e3a5f", borderRadius: 12, textDecoration: "none", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "#06b6d4"; e.currentTarget.style.background = "rgba(6,182,212,0.06)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.background = "#040a16"; }}>
+              onMouseLeave={e => { e.currentTarget.style.borderColor = st.border; e.currentTarget.style.background = st.cardBg2; }}>
               <span style={{ fontSize: 26 }}>{btn.icon}</span>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5 }}>{btn.sub}</div>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{btn.label}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: st.textPrimary }}>{btn.label}</div>
               </div>
             </a>
           ))}
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
           {["Free — always", "No account required", "HIPAA-safe"].map(t => (
-            <span key={t} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#475569", display: "flex", alignItems: "center", gap: 6 }}>
+            <span key={t} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: st.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: "#34d399" }}>✓</span> {t}
             </span>
           ))}
@@ -2541,14 +2555,14 @@ function ConsumerSection() {
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
-function SiteFooter({ onClinicianSignup }) {
+function SiteFooter({ onClinicianSignup, st }) {
   return (
-    <footer style={{ background: "#040a16", borderTop: "1px solid #1e3a5f", padding: "56px 32px 36px", fontFamily: "'DM Sans', sans-serif" }}>
+    <footer style={{ background: st.pageBg, borderTop: `1px solid ${st.border}`, transition: "background 0.3s", padding: "56px 32px 36px", fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 40, marginBottom: 48 }}>
           <div style={{ maxWidth: 280 }}>
-            <Logo />
-            <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, marginTop: 14 }}>Clinical-grade polypharmacy management for family practices and health systems.</p>
+            <Logo siteTheme={st.dark ? "dark" : "light"} />
+            <p style={{ fontSize: 13, color: st.textMuted, lineHeight: 1.7, marginTop: 14 }}>Clinical-grade polypharmacy management for family practices and health systems.</p>
             <button onClick={onClinicianSignup} style={{ marginTop: 20, padding: "9px 20px", background: "#06b6d4", border: "none", borderRadius: 8, color: "#001a24", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
               Start free trial →
             </button>
@@ -2560,19 +2574,19 @@ function SiteFooter({ onClinicianSignup }) {
               { heading: "Legal", links: ["Privacy Policy", "Terms of Service", "BAA", "HIPAA Notice"] },
             ].map(col => (
               <div key={col.heading}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#334155", marginBottom: 16 }}>{col.heading}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: st.textDim, marginBottom: 16 }}>{col.heading}</div>
                 {col.links.map(l => (
-                  <div key={l} style={{ fontSize: 13, color: "#475569", marginBottom: 11, cursor: "pointer", transition: "color 0.15s" }}
+                  <div key={l} style={{ fontSize: 13, color: st.textMuted, marginBottom: 11, cursor: "pointer", transition: "color 0.15s" }}
                     onMouseEnter={e => e.currentTarget.style.color = "#06b6d4"}
-                    onMouseLeave={e => e.currentTarget.style.color = "#475569"}>{l}</div>
+                    onMouseLeave={e => e.currentTarget.style.color = st.textMuted}>{l}</div>
                 ))}
               </div>
             ))}
           </div>
         </div>
         <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 24, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <span style={{ fontSize: 12, color: "#1e3a5f" }}>© 2026 LessMeds Inc. All rights reserved.</span>
-          <span style={{ fontSize: 12, color: "#1e3a5f" }}>HIPAA Compliant · AES-256 · TLS 1.3 · SOC 2 Type II In Progress</span>
+          <span style={{ fontSize: 12, color: st.textDim }}>© 2026 LessMeds Inc. All rights reserved.</span>
+          <span style={{ fontSize: 12, color: st.textDim }}>HIPAA Compliant · AES-256 · TLS 1.3 · SOC 2 Type II In Progress</span>
         </div>
       </div>
     </footer>
@@ -2581,24 +2595,216 @@ function SiteFooter({ onClinicianSignup }) {
 
 // ─── Marketing Site ──────────────────────────────────────────────────────────
 
-function MarketingSite({ onClinicianSignup, onConsumer, onSelectPlan }) {
+// ─── Video Section ────────────────────────────────────────────────────────────
+function VideoSection({ st }) {
+  const [playing, setPlaying] = React.useState(false);
+  // Dr. DeLon's intro video - replace VIDEO_ID with actual YouTube ID at launch
+  const VIDEO_ID = "L771z-GnmHM";
+
   return (
-    <div style={{ background: "#040a16", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
+    <section style={{ padding: "100px 24px", background: st.pageBg2, borderTop: `1px solid ${st.border}`, transition: "background 0.3s" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 52 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 20, padding: "5px 14px", marginBottom: 18 }}>
+            <span style={{ fontSize: 12 }}>🎥</span>
+            <span style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>From our founder</span>
+          </div>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: st.textPrimary, margin: "0 0 16px", lineHeight: 1.12, transition: "color 0.3s" }}>
+            Why we built LessMeds.
+          </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: st.textMuted, lineHeight: 1.7, maxWidth: 560, margin: "0 auto" }}>
+                  Dr. DeLon Canterbury, PharmD explains the polypharmacy crisis in America and how LessMeds is designed to solve it — for clinicians, families, and the patients caught in between.
+          </p>
+        </div>
+
+        {/* Video embed */}
+        <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", background: "#000", boxShadow: `0 32px 80px rgba(0,0,0,${st.dark ? 0.5 : 0.15})`, border: `1px solid ${st.border}` }}>
+          {!playing ? (
+            /* Thumbnail / poster state */
+            <div style={{ position: "relative", paddingBottom: "56.25%", background: "linear-gradient(135deg, #071428 0%, #0d1b35 100%)", cursor: "pointer" }} onClick={() => setPlaying(true)}>
+              {/* YouTube thumbnail */}
+              <img
+                src={`https://img.youtube.com/vi/${VIDEO_ID}/maxresdefault.jpg`}
+                alt="Dr. DeLon Canterbury — LessMeds Introduction"
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.7 }}
+                onError={e => { e.target.style.display = "none"; }}
+              />
+              {/* Dark overlay */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(4,10,22,0.3), rgba(4,10,22,0.6))" }} />
+
+              {/* Placeholder content when no thumb */}
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+                {/* Play button */}
+                <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#06b6d4", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 16px rgba(6,182,212,0.15), 0 0 0 32px rgba(6,182,212,0.07)", transition: "transform 0.2s, box-shadow 0.2s", cursor: "pointer" }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = "0 0 0 20px rgba(6,182,212,0.2), 0 0 0 40px rgba(6,182,212,0.08)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 0 0 16px rgba(6,182,212,0.15), 0 0 0 32px rgba(6,182,212,0.07)"; }}>
+                  <span style={{ fontSize: 28, marginLeft: 6, color: "#001a24" }}>▶</span>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: "#f1f5f9", marginBottom: 4 }}>Dr. DeLon Canterbury, PharmD</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#94a3b8" }}>Founder & Chief Pharmacist Officer · LessMeds</div>
+                </div>
+              </div>
+
+              {/* Duration badge */}
+              <div style={{ position: "absolute", bottom: 16, right: 16, background: "rgba(0,0,0,0.75)", borderRadius: 5, padding: "3px 8px", fontSize: 12, color: "#fff", fontFamily: "'DM Sans', sans-serif", fontWeight: 600 }}>
+                3:47
+              </div>
+            </div>
+          ) : (
+            /* Active YouTube embed */
+            <div style={{ position: "relative", paddingBottom: "56.25%" }}>
+              <iframe
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+                src={`https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1&rel=0&modestbranding=1&cc_load_policy=1`}
+                title="Dr. DeLon Canterbury — LessMeds Introduction"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Below-video meta */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 32, marginTop: 28, flexWrap: "wrap" }}>
+          {[
+            { icon: "⏱", text: "3 min 47 sec" },
+            { icon: "📚", text: "Why polypharmacy is America's hidden crisis" },
+            { icon: "💡", text: "How LessMeds helps your practice" },
+          ].map(item => (
+            <div key={item.text} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: st.textMuted }}>
+              <span>{item.icon}</span><span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Pharmacist Network Section ───────────────────────────────────────────────
+function PharmacistNetworkSection({ onPharmacist, st }) {
+  const perks = [
+    { icon: "💰", title: "Get paid per review", body: "Earn $35–$85 per completed medication review, deposited bi-weekly to your bank account via direct deposit." },
+    { icon: "📋", title: "Structured review workflow", body: "Each case comes pre-loaded with the patient's full medication list, diagnoses, labs, and risk flags — ready for your clinical assessment." },
+    { icon: "⚗", title: "Propose deprescribing recs", body: "Submit structured recommendations that go directly to the prescribing physician for approval. Every action is documented in the audit trail." },
+    { icon: "🗓", title: "Work on your schedule", body: "Take cases when it fits your schedule. Set your weekly capacity and case preferences. No minimums, no maximums." },
+    { icon: "🏥", title: "Work with any practice", body: "LessMeds connects you with family practices, geriatric clinics, and health systems — no cold outreach required." },
+    { icon: "📜", title: "CE credit eligible", body: "Select review pathways qualify for continuing pharmacy education credit through our accredited CE partnerships." },
+  ];
+
+  return (
+    <section style={{ padding: "100px 24px", background: st.pageBg, borderTop: `1px solid ${st.border}`, transition: "background 0.3s" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
+
+          {/* Left: copy */}
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 20, padding: "5px 14px", marginBottom: 20 }}>
+              <span style={{ fontSize: 12 }}>⚗</span>
+              <span style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>For licensed pharmacists</span>
+            </div>
+            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,3.5vw,48px)", fontWeight: 900, letterSpacing: -1.5, color: st.textPrimary, margin: "0 0 20px", lineHeight: 1.1, transition: "color 0.3s" }}>
+              Join the LessMeds<br />
+              <span style={{ background: "linear-gradient(100deg, #818cf8, #8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                Pharmacist Network.
+              </span>
+            </h2>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: st.textMuted, lineHeight: 1.8, marginBottom: 32 }}>
+              LessMeds connects licensed pharmacists with physician practices for structured, paid medication reviews. You use your clinical expertise to improve patient safety — and get compensated fairly for it.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 36 }}>
+              {[
+                ["$35 – $85", "per completed medication review"],
+                ["Bi-weekly", "direct deposit payouts"],
+                ["100%", "remote — work from anywhere licensed"],
+              ].map(([val, label]) => (
+                <div key={val} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", background: "rgba(139,92,246,0.07)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 12 }}>
+                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 900, color: "#818cf8", minWidth: 80 }}>{val}</span>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: st.textSecondary }}>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={onPharmacist}
+              style={{ padding: "16px 36px", background: "#8b5cf6", border: "none", borderRadius: 11, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 0 32px rgba(139,92,246,0.3)", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#7c3aed"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#8b5cf6"; e.currentTarget.style.transform = "none"; }}>
+              Apply to the network →
+            </button>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: st.textMuted, marginTop: 12 }}>
+              PharmD or RPh license required · Takes ~5 minutes to apply
+            </div>
+          </div>
+
+          {/* Right: perk cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {perks.map(p => (
+              <div key={p.title} style={{ background: st.cardBg, border: `1px solid ${st.border}`, borderRadius: 14, padding: "18px 16px", transition: "all 0.2s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#818cf644"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = st.border; e.currentTarget.style.transform = "none"; }}>
+                <div style={{ fontSize: 22, marginBottom: 10 }}>{p.icon}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: st.textPrimary, marginBottom: 6 }}>{p.title}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: st.textMuted, lineHeight: 1.65 }}>{p.body}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Light/Dark theme tokens for marketing site ───────────────────────────────
+function mkSiteTheme(mode) {
+  const dark = mode === "dark";
+  return {
+    dark,
+    pageBg:       dark ? "#040a16"  : "#f8fafc",
+    pageBg2:      dark ? "#071428"  : "#ffffff",
+    border:       dark ? "#1e3a5f"  : "#e2e8f0",
+    borderSub:    dark ? "#0d2040"  : "#f1f5f9",
+    textPrimary:  dark ? "#f1f5f9"  : "#0f172a",
+    textSecondary:dark ? "#94a3b8"  : "#475569",
+    textMuted:    dark ? "#475569"  : "#94a3b8",
+    textDim:      dark ? "#334155"  : "#cbd5e1",
+    cardBg:       dark ? "#071428"  : "#ffffff",
+    cardBg2:      dark ? "#040a16"  : "#f8fafc",
+    inputBg:      dark ? "#071428"  : "#ffffff",
+    accent:       "#06b6d4",
+    accentSoft:   dark ? "rgba(6,182,212,0.08)"  : "rgba(6,182,212,0.06)",
+    accentBorder: dark ? "rgba(6,182,212,0.25)"  : "rgba(6,182,212,0.35)",
+    gridLine:     dark ? "rgba(30,58,95,0.18)"   : "rgba(148,163,184,0.15)",
+    glow1:        dark ? "rgba(6,182,212,0.07)"  : "rgba(6,182,212,0.05)",
+    glow2:        dark ? "rgba(37,99,235,0.06)"  : "rgba(37,99,235,0.04)",
+    scrollTrack:  dark ? "#040a16"  : "#f8fafc",
+    scrollThumb:  dark ? "#1e3a5f"  : "#e2e8f0",
+  };
+}
+
+function MarketingSite({ onClinicianSignup, onConsumer, onSelectPlan, onPharmacist }) {
+  const [siteTheme, setSiteTheme] = React.useState("dark");
+  const st = mkSiteTheme(siteTheme);
+  return (
+    <div style={{ background: st.pageBg, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", transition: "background 0.3s" }}>
       <style>{`
         @keyframes lm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
         *{box-sizing:border-box;margin:0;padding:0}
         ::-webkit-scrollbar{width:5px}
-        ::-webkit-scrollbar-track{background:#040a16}
-        ::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:3px}
+        ::-webkit-scrollbar-track{background:${st.scrollTrack}}
+        ::-webkit-scrollbar-thumb{background:${st.scrollThumb};border-radius:3px}
       `}</style>
-      <MarketingNav onClinicianSignup={onClinicianSignup} onConsumer={onConsumer} />
-      <HeroSection onClinicianSignup={onClinicianSignup} onConsumer={onConsumer} />
-      <StatsBar />
-      <FeaturesSection />
-      <TestimonialsSection />
-      <PricingSection onSelectPlan={onSelectPlan} />
-      <ConsumerSection />
-      <SiteFooter onClinicianSignup={onClinicianSignup} />
+      <MarketingNav onClinicianSignup={onClinicianSignup} onConsumer={onConsumer} onPharmacist={onPharmacist} siteTheme={siteTheme} setSiteTheme={setSiteTheme} />
+      <HeroSection onClinicianSignup={onClinicianSignup} onConsumer={onConsumer} st={st} />
+      <StatsBar st={st} />
+      <VideoSection st={st} />
+      <FeaturesSection st={st} />
+      <TestimonialsSection st={st} />
+      <PricingSection onSelectPlan={onSelectPlan} st={st} />
+      <PharmacistNetworkSection onPharmacist={onPharmacist} st={st} />
+      <ConsumerSection st={st} />
+      <SiteFooter onClinicianSignup={onClinicianSignup} st={st} />
     </div>
   );
 }
@@ -2996,14 +3202,474 @@ function ClinicianSignup({ initialPlan, onBack, onComplete }) {
   );
 }
 
+// ─── Pharmacist Join Modal ────────────────────────────────────────────────────
+function PharmacistJoinModal({ onClose, onComplete }) {
+  const [step, setStep] = React.useState(0); // 0=form, 1=success
+  const [f, setF] = React.useState({
+    firstName: "", lastName: "", email: "", phone: "",
+    license: "", licenseState: "", licenseType: "PharmD",
+    employer: "", yearsExp: "", specialties: [], availability: "",
+    linkedin: "", notes: "",
+  });
+  const u = k => e => setF(p => ({ ...p, [k]: e.target.value }));
+  const toggleSpec = spec => setF(p => ({
+    ...p,
+    specialties: p.specialties.includes(spec) ? p.specialties.filter(s => s !== spec) : [...p.specialties, spec],
+  }));
+  const valid = f.firstName && f.lastName && f.email && f.license && f.licenseState;
+
+  const specialtyOptions = ["Geriatrics", "Oncology", "Cardiology", "Psychiatry", "Nephrology", "Endocrinology", "Pain Management", "General / Primary Care"];
+  const availabilityOptions = ["1-5 reviews/week", "6-10 reviews/week", "11-20 reviews/week", "20+ reviews/week"];
+
+  const inpStyle = {
+    width: "100%", padding: "10px 13px", borderRadius: 8,
+    border: "1.5px solid #1e3a5f", background: "#071428",
+    color: "#e2e8f0", fontSize: 14, fontFamily: "'DM Sans', sans-serif",
+    outline: "none", boxSizing: "border-box",
+  };
+  const labelStyle = { display: "block", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "#64748b", marginBottom: 6 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto", fontFamily: "'DM Sans', sans-serif" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: "#071428", border: "1px solid #1e3a5f", borderRadius: 22, padding: "40px 36px", maxWidth: 560, width: "100%", marginTop: 20, marginBottom: 40 }}>
+        {step === 1 ? (
+          <div style={{ textAlign: "center", padding: "32px 0" }}>
+            <div style={{ fontSize: 56, marginBottom: 20 }}>🎉</div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 28, fontWeight: 900, color: "#f1f5f9", marginBottom: 12, letterSpacing: -0.5 }}>Application submitted!</h3>
+            <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.75, marginBottom: 12 }}>
+              Thanks, <strong style={{ color: "#94a3b8" }}>{f.firstName}</strong>! Our pharmacist network team will review your application and reach out within 2 business days.
+            </p>
+            <p style={{ fontSize: 13, color: "#475569", marginBottom: 32 }}>We'll send onboarding information and your first case access to <strong style={{ color: "#818cf8" }}>{f.email}</strong>.</p>
+            <button onClick={() => { onClose(); onComplete?.(); }}
+              style={{ padding: "13px 32px", background: "#8b5cf6", border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+              Done
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 11, background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚗</div>
+                <div>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 900, color: "#f1f5f9", letterSpacing: -0.5 }}>Join the Pharmacist Network</div>
+                  <div style={{ fontSize: 12, color: "#475569" }}>Licensed PharmD or RPh · Remote · Paid per review</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Name row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div><label style={labelStyle}>First Name *</label><input value={f.firstName} onChange={u("firstName")} placeholder="Jane" style={inpStyle} /></div>
+              <div><label style={labelStyle}>Last Name *</label><input value={f.lastName} onChange={u("lastName")} placeholder="Smith" style={inpStyle} /></div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div><label style={labelStyle}>Email *</label><input type="email" value={f.email} onChange={u("email")} placeholder="jane@email.com" style={inpStyle} /></div>
+              <div><label style={labelStyle}>Phone</label><input type="tel" value={f.phone} onChange={u("phone")} placeholder="(555) 000-0000" style={inpStyle} /></div>
+            </div>
+
+            {/* License */}
+            <div style={{ background: "#040a16", border: "1px solid #1e3a5f", borderRadius: 12, padding: "18px 16px", marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#475569", marginBottom: 14 }}>License Information</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={labelStyle}>License # *</label>
+                  <input value={f.license} onChange={u("license")} placeholder="RPH-12345" style={inpStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>State *</label>
+                  <input value={f.licenseState} onChange={u("licenseState")} placeholder="CA" maxLength={2} style={inpStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Credential</label>
+                  <select value={f.licenseType} onChange={u("licenseType")} style={inpStyle}>
+                    <option>PharmD</option><option>RPh</option><option>BCPS</option>
+                    <option>BCGP</option><option>BCOP</option><option>Other</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Experience */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Current Employer / Practice</label>
+                <input value={f.employer} onChange={u("employer")} placeholder="Hospital, pharmacy, etc." style={inpStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Years of Experience</label>
+                <select value={f.yearsExp} onChange={u("yearsExp")} style={inpStyle}>
+                  <option value="">Select…</option>
+                  <option>1–2 years</option><option>3–5 years</option>
+                  <option>6–10 years</option><option>11–20 years</option><option>20+ years</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Specialties */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Clinical Specialties <span style={{ color: "#334155", textTransform: "none", fontWeight: 400 }}>(select all that apply)</span></label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {specialtyOptions.map(s => {
+                  const active = f.specialties.includes(s);
+                  return (
+                    <button key={s} onClick={() => toggleSpec(s)}
+                      style={{ padding: "6px 13px", borderRadius: 20, border: `1.5px solid ${active ? "#818cf8" : "#1e3a5f"}`, background: active ? "rgba(139,92,246,0.12)" : "transparent", color: active ? "#818cf8" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}>
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Availability */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>Weekly Review Capacity</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {availabilityOptions.map(a => {
+                  const active = f.availability === a;
+                  return (
+                    <button key={a} onClick={() => setF(p => ({ ...p, availability: a }))}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${active ? "#06b6d4" : "#1e3a5f"}`, background: active ? "rgba(6,182,212,0.1)" : "transparent", color: active ? "#06b6d4" : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}>
+                      {a}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button onClick={() => { if (valid) setStep(1); }} disabled={!valid}
+              style={{ width: "100%", padding: "14px", borderRadius: 11, border: "none", background: valid ? "#8b5cf6" : "#1e3a5f", color: valid ? "#fff" : "#334155", fontSize: 15, fontWeight: 700, cursor: valid ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", marginBottom: 10, boxShadow: valid ? "0 0 24px rgba(139,92,246,0.3)" : "none" }}>
+              Submit Application →
+            </button>
+            <button onClick={onClose} style={{ width: "100%", padding: "10px", background: "none", border: "none", color: "#334155", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Pharmacist Dashboard ─────────────────────────────────────────────────────
+function PharmacistDashboard({ onBack }) {
+  const [activeTab, setActiveTab] = React.useState("queue");
+  const [selectedCase, setSelectedCase] = React.useState(null);
+  const [recText, setRecText] = React.useState("");
+  const [recAction, setRecAction] = React.useState("deprescribe");
+  const [recDrug, setRecDrug] = React.useState("");
+  const [submitted, setSubmitted] = React.useState([]);
+
+  // Mock queue cases for pharmacist review
+  const PHARM_CASES = [
+    { id: "pc1", name: "Eleanor Whitmore", age: 82, mrn: "MRN-4421", score: 89, meds: 14, flags: 3, physician: "Dr. Patel", conditions: ["AFib", "Diabetes T2", "Hypertension", "CKD Stage 3"], medications: ["Warfarin 5mg", "Aspirin 81mg", "Metformin 1000mg", "Lisinopril 10mg", "Furosemide 40mg", "Digoxin 0.125mg", "Atorvastatin 40mg", "Omeprazole 20mg", "Amlodipine 5mg", "Gabapentin 300mg", "Melatonin 5mg", "Vitamin D3", "Fish Oil", "Magnesium"], priority: "high", fee: 75 },
+    { id: "pc2", name: "Harold Simmons", age: 76, mrn: "MRN-3872", score: 67, meds: 9, flags: 1, physician: "Dr. Chen", conditions: ["COPD", "Hypertension", "Depression"], medications: ["Tiotropium inhaler", "Albuterol PRN", "Lisinopril 20mg", "Amlodipine 10mg", "Sertraline 100mg", "Lorazepam 0.5mg", "Atorvastatin 40mg", "Aspirin 81mg", "Omeprazole 20mg"], priority: "medium", fee: 50 },
+    { id: "pc3", name: "Dorothy Huang", age: 79, mrn: "MRN-5190", score: 74, meds: 11, flags: 2, physician: "Dr. Patel", conditions: ["Osteoporosis", "Hypothyroidism", "Insomnia", "Anxiety"], medications: ["Levothyroxine 100mcg", "Alendronate 70mg weekly", "Calcium Carbonate 1200mg", "Vitamin D3 2000IU", "Zolpidem 10mg", "Alprazolam 0.25mg", "Sertraline 50mg", "Atorvastatin 20mg", "Lisinopril 5mg", "Aspirin 81mg", "Vitamin B12"], priority: "medium", fee: 60 },
+    { id: "pc4", name: "Robert Castillo", age: 88, mrn: "MRN-2934", score: 92, meds: 16, flags: 4, physician: "Dr. Wilson", conditions: ["Heart Failure", "AFib", "CKD Stage 4", "Diabetes T2", "Gout"], medications: ["Furosemide 80mg", "Spironolactone 25mg", "Carvedilol 12.5mg", "Sacubitril/Valsartan 49/51mg", "Warfarin 7mg", "Digoxin 0.125mg", "Allopurinol 300mg", "Colchicine 0.6mg", "Insulin Glargine 30U", "Metformin 500mg", "Atorvastatin 40mg", "Aspirin 81mg", "Omeprazole 40mg", "Potassium Chloride 20mEq", "Vitamin D3", "Fish Oil"], priority: "critical", fee: 85 },
+  ];
+
+  const priorityColor = { critical: "#ef4444", high: "#f59e0b", medium: "#06b6d4" };
+  const priorityLabel = { critical: "🔴 Critical", high: "🟡 High", medium: "⬤ Medium" };
+
+  const t = {
+    pageBg: "#060b14", sidebarBg: "#0a1628", cardBg: "#0a1628", cardBg2: "#0d1b2a",
+    border: "#1e293b", borderStrong: "#334155",
+    textPrimary: "#f1f5f9", textSecondary: "#94a3b8", textMuted: "#64748b",
+    accent: "#8b5cf6", accentBg: "rgba(139,92,246,0.1)",
+  };
+
+  function submitRec() {
+    if (!recText || !recDrug) return;
+    const newRec = {
+      id: Date.now(), caseId: selectedCase.id, patientName: selectedCase.name,
+      drug: recDrug, action: recAction, rationale: recText,
+      submittedAt: new Date().toLocaleString(), status: "pending",
+      fee: selectedCase.fee,
+    };
+    setSubmitted(p => [newRec, ...p]);
+    setRecText(""); setRecDrug(""); setRecAction("deprescribe");
+    setSelectedCase(null);
+    setActiveTab("submitted");
+  }
+
+  const navItems = [
+    { id: "queue", icon: "📋", label: "Review Queue" },
+    { id: "submitted", icon: "✅", label: "Submitted" },
+    { id: "earnings", icon: "💰", label: "Earnings" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: t.pageBg, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column" }}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}`}</style>
+
+      {/* Header */}
+      <div style={{ height: 60, background: t.sidebarBg, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <Logo size="sm" />
+          <div style={{ width: 1, height: 20, background: t.border }} />
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8" }}>⚗ Pharmacist Dashboard</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 13, color: t.textMuted }}>Pharm. Sarah Chen, PharmD</div>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#818cf8,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" }}>SC</div>
+          <button onClick={onBack} style={{ padding: "7px 14px", background: "transparent", border: `1px solid ${t.border}`, borderRadius: 7, color: t.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back to site</button>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        {/* Sidebar */}
+        <div style={{ width: 220, background: t.sidebarBg, borderRight: `1px solid ${t.border}`, padding: "24px 0", flexShrink: 0 }}>
+          <div style={{ padding: "0 16px 20px", borderBottom: `1px solid ${t.border}`, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>This Week</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { label: "Reviews complete", val: submitted.length + 2 },
+                { label: "Pending approval", val: submitted.filter(r => r.status === "pending").length + 1 },
+                { label: "Est. earnings", val: `$${(submitted.length * 60 + 120).toLocaleString()}` },
+              ].map(s => (
+                <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: t.textMuted }}>{s.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#818cf8" }}>{s.val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {navItems.map(item => (
+            <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedCase(null); }}
+              style={{ width: "100%", textAlign: "left", padding: "10px 20px", background: activeTab === item.id ? "rgba(139,92,246,0.12)" : "transparent", border: "none", borderRight: activeTab === item.id ? "2px solid #8b5cf6" : "2px solid transparent", color: activeTab === item.id ? "#818cf8" : t.textMuted, fontSize: 14, fontWeight: activeTab === item.id ? 700 : 400, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}>
+              <span>{item.icon}</span>{item.label}
+              {item.id === "queue" && <span style={{ marginLeft: "auto", background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10 }}>{PHARM_CASES.length}</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: 28 }}>
+          {/* ── Review Queue ── */}
+          {activeTab === "queue" && !selectedCase && (
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: t.textPrimary, marginBottom: 4 }}>Review Queue</h2>
+                <p style={{ fontSize: 13, color: t.textMuted }}>{PHARM_CASES.length} cases assigned · sorted by priority</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {PHARM_CASES.map(c => (
+                  <div key={c.id} style={{ background: t.cardBg, border: `1px solid ${c.priority === "critical" ? "#ef444433" : t.border}`, borderRadius: 14, padding: 20, cursor: "pointer", transition: "all 0.2s" }}
+                    onClick={() => setSelectedCase(c)}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#818cf8"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = c.priority === "critical" ? "#ef444433" : t.border; e.currentTarget.style.transform = "none"; }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                          <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 800, color: t.textPrimary }}>{c.name}</span>
+                          <span style={{ fontSize: 11, color: priorityColor[c.priority], fontWeight: 700 }}>{priorityLabel[c.priority]}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: t.textMuted }}>Age {c.age} · {c.mrn} · {c.physician}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 900, color: "#22c55e" }}>${c.fee}</div>
+                        <div style={{ fontSize: 11, color: t.textMuted }}>review fee</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                      <span style={{ padding: "3px 10px", background: "#ef444418", border: "1px solid #ef444433", borderRadius: 6, fontSize: 11, color: "#ef4444", fontWeight: 600 }}>⚠ {c.flags} flags</span>
+                      <span style={{ padding: "3px 10px", background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 6, fontSize: 11, color: "#818cf8", fontWeight: 600 }}>💊 {c.meds} medications</span>
+                      <span style={{ padding: "3px 10px", background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)", borderRadius: 6, fontSize: 11, color: "#06b6d4", fontWeight: 600 }}>Risk: {c.score}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {c.conditions.map(cond => (
+                        <span key={cond} style={{ padding: "2px 9px", background: t.cardBg2, border: `1px solid ${t.border}`, borderRadius: 5, fontSize: 11, color: t.textMuted }}>{cond}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Case Review Detail ── */}
+          {activeTab === "queue" && selectedCase && (
+            <div>
+              <button onClick={() => setSelectedCase(null)} style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", border: "none", color: t.textMuted, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 24, padding: 0 }}>
+                ← Back to queue
+              </button>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+                {/* Patient summary */}
+                <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20 }}>
+                  <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Patient</div>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 800, color: t.textPrimary, marginBottom: 4 }}>{selectedCase.name}</div>
+                  <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 14 }}>Age {selectedCase.age} · {selectedCase.mrn} · {selectedCase.physician}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {selectedCase.conditions.map(c => (
+                      <span key={c} style={{ padding: "4px 10px", background: "rgba(6,182,212,0.07)", border: "1px solid rgba(6,182,212,0.2)", borderRadius: 6, fontSize: 12, color: "#06b6d4" }}>{c}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Risk summary */}
+                <div style={{ background: t.cardBg, border: `1px solid ${selectedCase.score >= 80 ? "#ef444433" : t.border}`, borderRadius: 14, padding: 20 }}>
+                  <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Risk Summary</div>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: selectedCase.score >= 80 ? "#ef4444" : selectedCase.score >= 60 ? "#f59e0b" : "#22c55e", letterSpacing: -2, lineHeight: 1, marginBottom: 8 }}>{selectedCase.score}</div>
+                  <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 14 }}>Polypharmacy risk score</div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <div style={{ padding: "6px 12px", background: "#ef444418", borderRadius: 7, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>{selectedCase.flags} critical flags</div>
+                    <div style={{ padding: "6px 12px", background: "rgba(139,92,246,0.1)", borderRadius: 7, fontSize: 12, color: "#818cf8", fontWeight: 700 }}>{selectedCase.meds} medications</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Medication list */}
+              <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20, marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Medication List</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))", gap: 10 }}>
+                  {selectedCase.medications.map((med, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: t.cardBg2, borderRadius: 9, border: `1px solid ${t.border}` }}>
+                      <span style={{ fontSize: 15 }}>💊</span>
+                      <span style={{ fontSize: 13, color: t.textSecondary }}>{med}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommendation form */}
+              <div style={{ background: t.cardBg, border: "1.5px solid rgba(139,92,246,0.3)", borderRadius: 14, padding: 24 }}>
+                <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 20 }}>⚗ Submit Recommendation</div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 }}>Action Type</label>
+                    <select value={recAction} onChange={e => setRecAction(e.target.value)}
+                      style={{ width: "100%", padding: "10px 13px", borderRadius: 8, border: "1.5px solid #1e293b", background: t.cardBg2, color: t.textPrimary, fontSize: 14, fontFamily: "'DM Sans', sans-serif", outline: "none" }}>
+                      <option value="deprescribe">Deprescribe</option>
+                      <option value="dose-reduce">Reduce Dose</option>
+                      <option value="switch">Switch Medication</option>
+                      <option value="add">Add Medication</option>
+                      <option value="monitor">Increase Monitoring</option>
+                      <option value="lab">Order Lab Work</option>
+                      <option value="consult">Specialist Consult</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 }}>Medication(s)</label>
+                    <input value={recDrug} onChange={e => setRecDrug(e.target.value)} placeholder="e.g. Zolpidem 10mg"
+                      style={{ width: "100%", padding: "10px 13px", borderRadius: 8, border: "1.5px solid #1e293b", background: t.cardBg2, color: t.textPrimary, fontSize: 14, fontFamily: "'DM Sans', sans-serif", outline: "none" }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: "block", fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 }}>Clinical Rationale *</label>
+                  <textarea value={recText} onChange={e => setRecText(e.target.value)} rows={5}
+                    placeholder="Provide detailed clinical rationale for this recommendation. Include relevant guidelines, drug interaction concerns, patient-specific factors, and proposed monitoring plan..."
+                    style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: "1.5px solid #1e293b", background: t.cardBg2, color: t.textPrimary, fontSize: 14, fontFamily: "'DM Sans', sans-serif", outline: "none", resize: "vertical", lineHeight: 1.65 }} />
+                </div>
+
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <button onClick={submitRec} disabled={!recText || !recDrug}
+                    style={{ padding: "13px 28px", background: recText && recDrug ? "#8b5cf6" : "#1e293b", border: "none", borderRadius: 10, color: recText && recDrug ? "#fff" : "#475569", fontSize: 14, fontWeight: 700, cursor: recText && recDrug ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", boxShadow: recText && recDrug ? "0 0 24px rgba(139,92,246,0.3)" : "none" }}>
+                    Submit to Dr. {selectedCase.physician.split(" ")[1]} →
+                  </button>
+                  <div style={{ fontSize: 12, color: t.textMuted }}>
+                    Review fee: <strong style={{ color: "#22c55e" }}>${selectedCase.fee}</strong> · paid upon physician review
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Submitted ── */}
+          {activeTab === "submitted" && (
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: t.textPrimary, marginBottom: 4 }}>Submitted Recommendations</h2>
+                <p style={{ fontSize: 13, color: t.textMuted }}>{submitted.length} this session</p>
+              </div>
+              {submitted.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px 24px", color: t.textMuted }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>📭</div>
+                  <div style={{ fontSize: 15, marginBottom: 8 }}>No recommendations submitted yet</div>
+                  <div style={{ fontSize: 13 }}>Complete a case from the review queue to see it here.</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {submitted.map(r => (
+                    <div key={r.id} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: 18 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: t.textPrimary, marginBottom: 3 }}>{r.patientName} — {r.drug}</div>
+                          <div style={{ fontSize: 12, color: t.textMuted }}>{r.action} · Submitted {r.submittedAt}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ padding: "4px 12px", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 20, fontSize: 11, color: "#fbbf24", fontWeight: 700 }}>Pending Review</div>
+                          <div style={{ fontSize: 12, color: "#22c55e", marginTop: 4, fontWeight: 700 }}>${r.fee} pending</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, color: t.textSecondary, background: t.cardBg2, borderRadius: 8, padding: "10px 12px", lineHeight: 1.65 }}>{r.rationale}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Earnings ── */}
+          {activeTab === "earnings" && (
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: t.textPrimary, marginBottom: 4 }}>Earnings</h2>
+                <p style={{ fontSize: 13, color: t.textMuted }}>Your review history and payment status</p>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: 16, marginBottom: 28 }}>
+                {[
+                  { label: "This month", val: `$${(submitted.length * 60 + 420).toLocaleString()}`, color: "#22c55e" },
+                  { label: "Pending payout", val: `$${(submitted.length * 60 + 120).toLocaleString()}`, color: "#f59e0b" },
+                  { label: "Total earned", val: `$${(submitted.length * 60 + 1840).toLocaleString()}`, color: "#818cf8" },
+                  { label: "Reviews done", val: submitted.length + 28, color: "#06b6d4" },
+                ].map(s => (
+                  <div key={s.label} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 12, padding: 20, textAlign: "center" }}>
+                    <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 900, color: s.color, letterSpacing: -1, marginBottom: 6 }}>{s.val}</div>
+                    <div style={{ fontSize: 12, color: t.textMuted }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20 }}>
+                <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Recent Payments</div>
+                {[
+                  { date: "Feb 16, 2026", amount: "$420", reviews: 7, status: "paid" },
+                  { date: "Feb 2, 2026", amount: "$360", reviews: 6, status: "paid" },
+                  { date: "Jan 19, 2026", amount: "$480", reviews: 8, status: "paid" },
+                  { date: "Jan 5, 2026", amount: "$300", reviews: 5, status: "paid" },
+                ].map(p => (
+                  <div key={p.date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${t.border}` }}>
+                    <div>
+                      <div style={{ fontSize: 14, color: t.textPrimary, fontWeight: 600 }}>{p.date}</div>
+                      <div style={{ fontSize: 12, color: t.textMuted }}>{p.reviews} reviews</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: "#22c55e", fontFamily: "'Outfit', sans-serif" }}>{p.amount}</div>
+                      <div style={{ padding: "2px 8px", background: "rgba(34,197,94,0.1)", borderRadius: 5, fontSize: 10, color: "#22c55e", fontWeight: 700, display: "inline-block" }}>Direct Deposit</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 
 export default function LessMeds() {
-  const [view, setView] = useState("marketing"); // "marketing" | "signup" | "dashboard"
+  const [view, setView] = useState("marketing"); // "marketing" | "signup" | "dashboard" | "pharmacist-dashboard"
   const [signupPlan, setSignupPlan] = useState(null);
   const [showConsumer, setShowConsumer] = useState(false);
+  const [showPharmJoin, setShowPharmJoin] = useState(false);
 
   if (view === "dashboard") return <LessMedsDashboard />;
+  if (view === "pharmacist-dashboard") return <PharmacistDashboard onBack={() => setView("marketing")} />;
 
   if (view === "signup") {
     return (
@@ -3020,13 +3686,24 @@ export default function LessMeds() {
       <MarketingSite
         onClinicianSignup={() => setView("signup")}
         onConsumer={() => setShowConsumer(true)}
+        onPharmacist={() => setShowPharmJoin(true)}
         onSelectPlan={plan => {
-          if (plan.id === "enterprise") return; // handled inside ClinicianSignup
+          if (plan.id === "enterprise") return;
           setSignupPlan(plan);
           setView("signup");
         }}
       />
       {showConsumer && <ConsumerModal onClose={() => setShowConsumer(false)} />}
+      {showPharmJoin && (
+        <PharmacistJoinModal
+          onClose={() => setShowPharmJoin(false)}
+          onComplete={() => {
+            setShowPharmJoin(false);
+            // After applying, offer to open pharmacist dashboard demo
+            setTimeout(() => setView("pharmacist-dashboard"), 500);
+          }}
+        />
+      )}
     </>
   );
 }
