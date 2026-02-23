@@ -833,7 +833,10 @@ function Dashboard({ cases, symptomEntries, onSelect }) {
         </div>
       )}
 
-      <div style={{ fontWeight:600, color:t.textMuted, fontSize:12, letterSpacing:1, textTransform:"uppercase", marginBottom:12 }}>All Cases</div>
+      <div style={{ fontWeight:600, color:t.textMuted, fontSize:12, letterSpacing:1, textTransform:"uppercase", marginBottom:10 }}>All Cases</div>
+      <div style={{ marginBottom:16 }}>
+        <PatientSearchBar cases={cases} onSelect={onSelect} placeholder="Quick patient search — name, MRN, medication, condition…" />
+      </div>
       <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: isMobile ? 10 : 16 }}>
         {cases.map(c => <CaseCard key={c.id} caseData={c} onClick={()=>onSelect(c.id)} />)}
       </div>
@@ -883,28 +886,307 @@ function CaseCard({ caseData, onClick }) {
 }
 
 // ─── Cases List ───────────────────────────────────────────────────────────────
+// ─── Patient Search Bar ──────────────────────────────────────────────────────
+// Reusable across Cases, Dashboard, Recommendations.
+// Searches: name · MRN · DOB · age · physician · pharmacist ·
+//           coordinator · conditions · medication names · status
+function PatientSearchBar({ cases, onSelect, placeholder }) {
+  const t = useTheme();
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const ph = placeholder || "Search patients…";
+
+  // Split into tokens so "patel warfarin" matches patients with Dr. Patel AND Warfarin
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+  const results = tokens.length === 0 ? [] : cases.filter(c => {
+    const haystack = [
+      c.name,
+      c.mrn,
+      String(c.age),
+      c.dob || "",
+      c.physician || "",
+      c.pharmacist || "",
+      c.coordinator || "",
+      c.status || "",
+      ...(c.conditions || []),
+      ...(c.medications || []).map(m => m.name),
+      ...(c.medications || []).map(m => m.class || ""),
+    ].join(" ").toLowerCase();
+    return tokens.every(tok => haystack.includes(tok));
+  }).slice(0, 8);
+
+  // Wraps matched tokens in a yellow highlight span
+  function hl(text) {
+    if (!tokens.length || !text) return text;
+    const parts = String(text).split(
+      new RegExp(`(${tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi")
+    );
+    return parts.map((p, i) =>
+      tokens.some(tok => p.toLowerCase() === tok)
+        ? <mark key={i} style={{ background: t.accent + "44", color: t.accent, borderRadius: 2, padding: "0 1px", fontWeight: 700 }}>{p}</mark>
+        : p
+    );
+  }
+
+  const showResults = focused && query.trim().length > 0;
+  const showHints   = focused && !query.trim();
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Input row */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        background: t.inputBg,
+        border: `1.5px solid ${focused ? t.accent : t.border}`,
+        borderRadius: 10, padding: "9px 14px",
+        transition: "border-color 0.15s, box-shadow 0.15s",
+        boxShadow: focused ? `0 0 0 3px ${t.accent}18` : "none",
+      }}>
+        <span style={{ color: t.textMuted, fontSize: 15, flexShrink: 0 }}>🔍</span>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 200)}
+          onKeyDown={e => {
+            if (e.key === "Escape") { setQuery(""); setFocused(false); }
+            if (e.key === "Enter" && results.length === 1) { onSelect(results[0].id); setQuery(""); setFocused(false); }
+          }}
+          placeholder={ph}
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: t.textPrimary, fontSize: 14, fontFamily: "'DM Sans',sans-serif" }}
+          autoComplete="off" spellCheck="false"
+        />
+        {query && (
+          <button onClick={() => setQuery("")}
+            style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+        )}
+      </div>
+
+      {/* Dropdown panel */}
+      {(showResults || showHints) && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 200,
+          background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.28)", overflow: "hidden",
+        }}>
+
+          {/* Hints (empty query, just focused) */}
+          {showHints && (
+            <div style={{ padding: "14px 16px" }}>
+              <div style={{ fontSize: 10, color: t.textMuted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Search by any of these</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {[
+                  ["👤","Patient name","e.g. Whitmore"],
+                  ["🪪","MRN","e.g. MRN-4421"],
+                  ["🎂","Date of birth","e.g. 1946-03-14"],
+                  ["💊","Medication","e.g. Warfarin"],
+                  ["🏥","Condition","e.g. Diabetes"],
+                  ["👨‍⚕️","Physician","e.g. Dr. Patel"],
+                  ["🧪","Pharmacist","e.g. Pharm. Chen"],
+                  ["📋","Drug class","e.g. Statin"],
+                ].map(([icon, label, hint]) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 10px", borderRadius: 8, background: t.cardBg2, border: `1px solid ${t.border}` }}>
+                    <span style={{ fontSize: 14 }}>{icon}</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary, lineHeight: 1.2 }}>{label}</div>
+                      <div style={{ fontSize: 10, color: t.textMuted }}>{hint}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 11, color: t.textMuted }}>Tip: combine terms — <em>"patel warfarin"</em> finds patients on Warfarin under Dr. Patel</div>
+            </div>
+          )}
+
+          {/* Results */}
+          {showResults && (results.length === 0 ? (
+            <div style={{ padding: "18px 16px", color: t.textMuted, fontSize: 13, textAlign: "center" }}>
+              No patients match <strong style={{ color: t.textSecondary }}>"{query}"</strong>
+              <div style={{ fontSize: 11, marginTop: 4 }}>Try name, MRN, condition, medication, or physician</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: "8px 16px 6px", fontSize: 10, color: t.textMuted, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", borderBottom: `1px solid ${t.border}` }}>
+                {results.length} match{results.length !== 1 ? "es" : ""} · press Enter to open if only one result
+              </div>
+              {results.map(c => {
+                const critCount   = c.flags.filter(f => f.sev === "high").length;
+                const matchedMeds = (c.medications || []).filter(m =>
+                  tokens.some(tok => m.name.toLowerCase().includes(tok) || (m.class || "").toLowerCase().includes(tok))
+                ).map(m => m.name);
+                const matchedConds = (c.conditions || []).filter(cd =>
+                  tokens.some(tok => cd.toLowerCase().includes(tok))
+                );
+                return (
+                  <div key={c.id}
+                    onMouseDown={() => { onSelect(c.id); setQuery(""); setFocused(false); }}
+                    style={{ padding: "11px 16px", cursor: "pointer", borderBottom: `1px solid ${t.border}`, transition: "background 0.1s" }}
+                    onMouseEnter={e => e.currentTarget.style.background = t.tableRowHover}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Name + MRN row */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 3 }}>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: t.textPrimary }}>{hl(c.name)}</span>
+                          <span style={{ fontFamily: "monospace", fontSize: 11, color: t.accent, background: t.accentBg, padding: "1px 6px", borderRadius: 4 }}>{hl(c.mrn)}</span>
+                        </div>
+                        {/* Secondary info */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 11, color: t.textMuted, marginBottom: 4 }}>
+                          <span>Age {c.age}</span>
+                          {c.dob && <span>DOB {hl(c.dob)}</span>}
+                          <span>{hl(c.physician)}</span>
+                          {c.pharmacist && <span>{hl(c.pharmacist)}</span>}
+                        </div>
+                        {/* Matched medications / conditions chips */}
+                        {(matchedMeds.length > 0 || matchedConds.length > 0) && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                            {matchedMeds.map(m => (
+                              <span key={m} style={{ fontSize: 10, padding: "1px 8px", borderRadius: 20, background: t.accentBg, color: t.accent, fontWeight: 600, border: `1px solid ${t.accent}33` }}>💊 {m}</span>
+                            ))}
+                            {matchedConds.map(cd => (
+                              <span key={cd} style={{ fontSize: 10, padding: "1px 8px", borderRadius: 20, background: t.chipBg, color: t.chipText, border: `1px solid ${t.border}` }}>🏥 {cd}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Score + critical badge */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                        <ScoreBadge score={c.score} />
+                        {critCount > 0 && (
+                          <span style={{ fontSize: 10, color: t.danger, fontWeight: 700 }}>🔴 {critCount} critical</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Cases List ───────────────────────────────────────────────────────────────
 function CasesList({ cases, onSelect, onNew }) {
   const t = useTheme();
   const isMobile = useIsMobileCtx();
+  const [riskFilter, setRiskFilter] = useState("all");
+  const [sortBy,  setSortBy]  = useState("name");
+  const [sortDir, setSortDir] = useState("asc");
+
+  function toggleSort(col) {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("asc"); }
+  }
+
+  const filtered = cases
+    .filter(c => {
+      if (riskFilter === "high")     return c.score >= 71;
+      if (riskFilter === "moderate") return c.score >= 41 && c.score < 71;
+      if (riskFilter === "low")      return c.score < 41;
+      if (riskFilter === "critical") return c.flags.filter(f => f.sev === "high").length > 0;
+      if (riskFilter === "review")   return c.flags.some(f => f.type === "REVIEW");
+      return true;
+    })
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortBy === "name")   return a.name.localeCompare(b.name) * dir;
+      if (sortBy === "score")  return (a.score - b.score) * dir;
+      if (sortBy === "age")    return (a.age - b.age) * dir;
+      if (sortBy === "meds")   return (a.medications.length - b.medications.length) * dir;
+      if (sortBy === "review") return a.lastReview.localeCompare(b.lastReview) * dir;
+      if (sortBy === "flags")  return (a.flags.filter(f=>f.sev==="high").length - b.flags.filter(f=>f.sev==="high").length) * dir;
+      return 0;
+    });
+
+  // Sortable column header
+  function SortTh({ col, label, style: extraStyle }) {
+    const active = sortBy === col;
+    return (
+      <th onClick={() => toggleSort(col)}
+        style={{ padding:"12px 16px", textAlign:"left", fontSize:11, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase",
+          cursor:"pointer", userSelect:"none", whiteSpace:"nowrap",
+          color: active ? t.accent : t.textMuted,
+          ...extraStyle }}>
+        {label}
+        <span style={{ marginLeft: 4, opacity: active ? 1 : 0.3, fontSize: 10 }}>
+          {active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      </th>
+    );
+  }
+
+  const filterCounts = {
+    all:      cases.length,
+    critical: cases.filter(c => c.flags.some(f => f.sev === "high")).length,
+    high:     cases.filter(c => c.score >= 71).length,
+    moderate: cases.filter(c => c.score >= 41 && c.score < 71).length,
+    low:      cases.filter(c => c.score < 41).length,
+    review:   cases.filter(c => c.flags.some(f => f.type === "REVIEW")).length,
+  };
+
   return (
     <div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: isMobile ? 14 : 20 }}>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: isMobile ? 14 : 20, flexWrap:"wrap", gap:10 }}>
         <div>
           <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight:700, color:t.textPrimary, margin:0 }}>Patient Cases</h2>
-          <p style={{ color:t.textMuted, fontSize:13, margin:"2px 0 0" }}>{cases.length} active cases</p>
+          <p style={{ color:t.textMuted, fontSize:13, margin:"2px 0 0" }}>
+            {filtered.length === cases.length
+              ? `${cases.length} active cases`
+              : `${filtered.length} of ${cases.length} cases`}
+          </p>
         </div>
         <ActionBtn onClick={onNew}>+ New Case</ActionBtn>
       </div>
 
+      {/* ── Search bar ── */}
+      <div style={{ marginBottom: 14 }}>
+        <PatientSearchBar
+          cases={cases}
+          onSelect={onSelect}
+          placeholder="Search by name, MRN, DOB, medication, condition, physician, drug class…"
+        />
+      </div>
+
+      {/* ── Risk / review filter pills ── */}
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom: isMobile ? 14 : 18 }}>
+        {[
+          { id:"all",      label:"All Cases" },
+          { id:"critical", label:"🔴 Critical" },
+          { id:"high",     label:"High Risk" },
+          { id:"moderate", label:"Moderate" },
+          { id:"low",      label:"Low Risk" },
+          { id:"review",   label:"⏰ Needs Review" },
+        ].map(f => (
+          <button key={f.id} onClick={() => setRiskFilter(f.id)} style={{
+            padding:"5px 13px", borderRadius:20, fontSize:12,
+            fontWeight: riskFilter === f.id ? 700 : 500,
+            border:`1px solid ${riskFilter === f.id ? t.accent : t.border}`,
+            background: riskFilter === f.id ? t.accentBg : "transparent",
+            color: riskFilter === f.id ? t.accent : t.textSecondary,
+            cursor:"pointer", fontFamily:"'DM Sans',sans-serif", transition:"all 0.15s",
+          }}>
+            {f.label}
+            <span style={{ marginLeft:5, opacity:0.6, fontSize:11 }}>({filterCounts[f.id]})</span>
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 && <EmptyState>No patients match this filter.</EmptyState>}
+
       {/* Mobile: card list */}
       {isMobile ? (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {cases.map(c=>(
+          {filtered.map(c=>(
             <div key={c.id} onClick={()=>onSelect(c.id)}
               style={{ background:t.cardBg, border:`1px solid ${t.border}`, borderRadius:12, padding:14, cursor:"pointer", display:"flex", alignItems:"center", gap:12 }}>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontWeight:700, color:t.textPrimary, fontSize:14, marginBottom:2 }}>{c.name}</div>
-                <div style={{ color:t.textMuted, fontSize:11 }}>Age {c.age} · {c.medications.length} meds · {c.lastReview}</div>
+                <div style={{ color:t.textMuted, fontSize:11 }}>Age {c.age} · {c.mrn} · {c.medications.length} meds · {c.lastReview}</div>
                 <div style={{ marginTop:6, display:"flex", gap:6, flexWrap:"wrap" }}>
                   {c.flags.filter(f=>f.sev==="high").length > 0 && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.dangerBg, color:t.dangerText, fontWeight:700 }}>🔴 {c.flags.filter(f=>f.sev==="high").length} Critical</span>}
                   {c.flags.filter(f=>f.sev==="moderate").length > 0 && c.flags.filter(f=>f.sev==="high").length===0 && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:20, background:t.warningBg, color:t.warningText, fontWeight:600 }}>🟡 Moderate</span>}
@@ -916,18 +1198,23 @@ function CasesList({ cases, onSelect, onNew }) {
           ))}
         </div>
       ) : (
-        /* Desktop: full table */
+        /* Desktop: sortable table */
         <div style={{ background:t.tableBg, border:`1px solid ${t.border}`, borderRadius:12, overflow:"hidden", boxShadow: t.appBg==="#f0f4f8"?"0 1px 4px rgba(0,0,0,0.06)":"none" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr style={{ borderBottom:`1px solid ${t.border}`, background: t.appBg==="#f0f4f8" ? t.cardBg2 : "transparent" }}>
-                {["Patient","Age","MRN","Medications","Risk Score","Flags","Last Review",""].map(h=>(
-                  <th key={h} style={{ padding:"12px 16px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>{h}</th>
-                ))}
+                <SortTh col="name"   label="Patient" />
+                <SortTh col="age"    label="Age" />
+                <th style={{ padding:"12px 16px", textAlign:"left", fontSize:11, color:t.textMuted, fontWeight:600, letterSpacing:0.5, textTransform:"uppercase" }}>MRN</th>
+                <SortTh col="meds"   label="Medications" />
+                <SortTh col="score"  label="Risk Score" />
+                <SortTh col="flags"  label="Flags" />
+                <SortTh col="review" label="Last Review" />
+                <th style={{ padding:"12px 16px" }}></th>
               </tr>
             </thead>
             <tbody>
-              {cases.map(c=>(
+              {filtered.map(c=>(
                 <tr key={c.id} style={{ borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
                   onMouseEnter={e=>e.currentTarget.style.background=t.tableRowHover}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}
@@ -937,7 +1224,7 @@ function CasesList({ cases, onSelect, onNew }) {
                     <div style={{ color:t.textMuted, fontSize:11, marginTop:2 }}>{c.physician}</div>
                   </td>
                   <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:13 }}>{c.age}</td>
-                  <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:12, fontFamily:"monospace" }}>{c.mrn}</td>
+                  <td style={{ padding:"14px 16px", color:t.accent, fontSize:12, fontFamily:"monospace" }}>{c.mrn}</td>
                   <td style={{ padding:"14px 16px", color:t.textSecondary, fontSize:13 }}>{c.medications.length}</td>
                   <td style={{ padding:"14px 16px" }}><ScoreBadge score={c.score} /></td>
                   <td style={{ padding:"14px 16px" }}>
@@ -957,7 +1244,6 @@ function CasesList({ cases, onSelect, onNew }) {
   );
 }
 
-// ─── Case Detail ──────────────────────────────────────────────────────────────
 function CaseDetail({ caseData, symptomEntries, pharmacistMode, tab, setTab, onBack, onApprove, onReject, onAddMed, onRemoveMed, onEditMed, onAddRec, currentUser }) {
   const t = useTheme();
   const isMobile = useIsMobileCtx();
@@ -1333,22 +1619,53 @@ function RecommendationsTab({ caseData, onApprove, onReject, onAdd, showNew, set
 
 function AllRecommendations({ cases, onApprove, onReject, currentUser, pharmacistMode }) {
   const t = useTheme();
+  const [recQuery, setRecQuery] = useState("");
+  const [recFocused, setRecFocused] = useState(false);
   const all = cases.flatMap(c => c.recommendations.map(r=>({...r,caseName:c.name,caseId:c.id})));
-  const pending = all.filter(r=>r.status==="pending");
+  const pendingAll = all.filter(r=>r.status==="pending");
+  const pending = pendingAll.filter(r => {
+    if (!recQuery.trim()) return true;
+    const q = recQuery.toLowerCase();
+    return (
+      r.caseName.toLowerCase().includes(q) ||
+      r.drug.toLowerCase().includes(q) ||
+      r.action.toLowerCase().includes(q) ||
+      (r.proposedBy || "").toLowerCase().includes(q) ||
+      (r.reason || "").toLowerCase().includes(q)
+    );
+  });
   return (
     <div>
-      <h2 style={{ fontSize:20, fontWeight:700, color:t.textPrimary, margin:"0 0 6px" }}>Recommendations</h2>
+      <h2 style={{ fontSize:20, fontWeight:700, color:t.textPrimary, margin:"0 0 14px" }}>Recommendations</h2>
+
+      {/* Filter search */}
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14,
+        background: t.inputBg, border:`1.5px solid ${recFocused ? t.accent : t.border}`,
+        borderRadius:10, padding:"9px 14px", transition:"border-color 0.15s",
+        boxShadow: recFocused ? `0 0 0 3px ${t.accent}18` : "none" }}>
+        <span style={{ color:t.textMuted, fontSize:14, flexShrink:0 }}>🔍</span>
+        <input
+          value={recQuery}
+          onChange={e=>setRecQuery(e.target.value)}
+          onFocus={()=>setRecFocused(true)}
+          onBlur={()=>setRecFocused(false)}
+          placeholder="Filter by patient name, drug, action type, or proposer…"
+          style={{ flex:1, background:"transparent", border:"none", outline:"none", color:t.textPrimary, fontSize:13, fontFamily:"'DM Sans',sans-serif" }}
+        />
+        {recQuery && <button onClick={()=>setRecQuery("")} style={{ background:"none", border:"none", color:t.textMuted, cursor:"pointer", fontSize:16, padding:0 }}>×</button>}
+      </div>
+
       <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", borderRadius:10, marginBottom:20,
         background: pharmacistMode ? t.accentBg : t.successBg,
         border: `1px solid ${pharmacistMode ? t.accent+"44" : t.successBorder}` }}>
         <span style={{ fontSize:16 }}>{pharmacistMode ? "⚗" : "👤"}</span>
         <span style={{ fontSize:13, color:t.textSecondary }}>
           {pharmacistMode
-            ? `${pending.length} recommendation${pending.length!==1?"s":""} awaiting physician review — proposed by pharmacist`
-            : `${pending.length} recommendation${pending.length!==1?"s":""} pending — Physician-Only mode active`}
+            ? `${pending.length}${recQuery ? ` of ${pendingAll.length}` : ""} recommendation${pending.length!==1?"s":""} awaiting physician review — proposed by pharmacist`
+            : `${pending.length}${recQuery ? ` of ${pendingAll.length}` : ""} recommendation${pending.length!==1?"s":""} pending — Physician-Only mode active`}
         </span>
       </div>
-      {pending.length === 0 && <EmptyState>No pending recommendations.</EmptyState>}
+      {pending.length === 0 && <EmptyState>{recQuery ? `No recommendations match "${recQuery}".` : "No pending recommendations."}</EmptyState>}
       {pending.map(r=>(
         <div key={r.id} style={{ background:t.cardBg, border:`1px solid ${t.warningBorder}`, borderRadius:12, padding:20, marginBottom:12 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
