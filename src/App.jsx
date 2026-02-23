@@ -527,7 +527,7 @@ function LogoA({ theme = "dark", size = "sidebar" }) {
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
-export default function LessMeds() {
+function LessMedsDashboard() {
   const [themeName, setThemeName] = useState("dark");
   const theme = THEMES[themeName];
   const [currentUser] = useState({ name:"Dr. Patel", role:"physician", id:"u1" });
@@ -2028,5 +2028,1005 @@ function ThemedModal({ title, onClose, onSave, children }) {
         </div>
       </div>
     </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LESSMEDS MARKETING SITE + B2B ONBOARDING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const PLANS = [
+  {
+    id: "solo",
+    name: "Solo Practice",
+    tagline: "For independent physicians",
+    seats: "1–3 providers",
+    price: 149,
+    highlight: false,
+    color: "#38bdf8",
+    features: [
+      "Up to 3 provider seats",
+      "Unlimited patient cases",
+      "Full risk-scoring engine",
+      "Caregiver mobile app sync",
+      "1 EHR integration",
+      "Email support",
+    ],
+  },
+  {
+    id: "practice",
+    name: "Group Practice",
+    tagline: "For small–mid-size offices",
+    seats: "4–25 providers",
+    price: 549,
+    highlight: true,
+    color: "#06b6d4",
+    features: [
+      "Up to 25 provider seats",
+      "Unlimited patient cases",
+      "Pharmacist + physician workflow",
+      "Caregiver mobile app sync",
+      "Up to 3 EHR integrations",
+      "Risk analytics dashboard",
+      "Priority email & chat support",
+    ],
+  },
+  {
+    id: "clinic",
+    name: "Multi-Site Clinic",
+    tagline: "For growing organizations",
+    seats: "26–100 providers",
+    price: 1299,
+    highlight: false,
+    color: "#818cf8",
+    features: [
+      "Up to 100 provider seats",
+      "Multi-site management",
+      "Full EHR integration suite",
+      "Audit log & HIPAA tools",
+      "Population-level reporting",
+      "SSO / SAML support",
+      "Dedicated onboarding call",
+    ],
+  },
+  {
+    id: "health-system",
+    name: "Health System",
+    tagline: "For hospitals & IDNs",
+    seats: "101–500 providers",
+    price: 2999,
+    highlight: false,
+    color: "#34d399",
+    features: [
+      "Up to 500 provider seats",
+      "Unlimited EHR integrations",
+      "Custom clinical rule sets",
+      "Population analytics suite",
+      "SLA 99.9% uptime",
+      "Custom reporting & exports",
+      "Customer success manager",
+    ],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    tagline: "For large health networks",
+    seats: "500+ providers",
+    price: null,
+    highlight: false,
+    color: "#fb923c",
+    features: [
+      "Unlimited seats",
+      "White-label & custom branding",
+      "Dedicated infrastructure",
+      "On-site training & implementation",
+      "Executive business reviews",
+      "24/7 phone support",
+      "Custom contract & BAA",
+    ],
+  },
+];
+
+const EHR_OPTIONS = [
+  { id: "epic",        name: "Epic",               icon: "⬡", note: "MyChart · SMART on FHIR R4" },
+  { id: "cerner",      name: "Oracle Cerner",      icon: "◈", note: "Millennium · HL7 FHIR R4" },
+  { id: "athena",      name: "athenahealth",       icon: "◎", note: "athenaNet · REST API" },
+  { id: "allscripts",  name: "Allscripts",         icon: "▣", note: "TouchWorks · FHIR" },
+  { id: "ecw",         name: "eClinicalWorks",     icon: "◐", note: "eCW FHIR API" },
+  { id: "nextgen",     name: "NextGen",            icon: "◍", note: "Enterprise EHR · FHIR" },
+  { id: "meditech",    name: "MEDITECH",           icon: "⬟", note: "Expanse · Web API" },
+  { id: "pointclick",  name: "PointClickCare",     icon: "◆", note: "LTC · Open API" },
+  { id: "manual",      name: "Manual Entry",       icon: "✎", note: "No EHR — enter data manually" },
+];
+
+const STATS = [
+  { n: "340+",  label: "drug interactions monitored" },
+  { n: "94%",   label: "reduction in missed interactions" },
+  { n: "4.8×",  label: "faster deprescribing workflow" },
+  { n: "HIPAA", label: "compliant · AES-256 encrypted" },
+];
+
+const TESTIMONIALS = [
+  {
+    quote: "LessMeds caught a Warfarin–Aspirin interaction I had missed for three months. The risk score flagged it on the first import.",
+    name: "Dr. Aarav Mehta", role: "Internal Medicine · 8-physician group", initials: "AM",
+  },
+  {
+    quote: "My pharmacist and I now collaborate in one platform. Recommendations, approvals, audit trail — all in one place. Our workflow transformed.",
+    name: "Dr. Linda Osei", role: "Family Medicine · Solo practice", initials: "LO",
+  },
+  {
+    quote: "Families actually use the caregiver app. We get symptom reports before patients even call the office. That alone is worth it.",
+    name: "Sarah Kim, PharmD", role: "Clinical Pharmacist · Community Health", initials: "SK",
+  },
+];
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+const S = {
+  input: {
+    width: "100%", padding: "11px 14px", borderRadius: 8,
+    border: "1.5px solid #1e3a5f", background: "#071428",
+    color: "#e2e8f0", fontSize: 14, fontFamily: "'DM Sans', sans-serif",
+    outline: "none", boxSizing: "border-box", transition: "border-color 0.2s",
+  },
+  label: {
+    display: "block", fontSize: 11, fontWeight: 700, letterSpacing: 0.8,
+    textTransform: "uppercase", color: "#64748b", marginBottom: 6,
+  },
+  card: {
+    background: "#071428", border: "1px solid #1e3a5f",
+    borderRadius: 14, padding: 24,
+  },
+};
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={S.label}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function FocusInput({ style: extra, ...props }) {
+  const [focused, setFocused] = React.useState(false);
+  return (
+    <input
+      {...props}
+      onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+      onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+      style={{ ...S.input, borderColor: focused ? "#06b6d4" : "#1e3a5f", boxShadow: focused ? "0 0 0 3px rgba(6,182,212,0.12)" : "none", ...extra }}
+    />
+  );
+}
+
+function FocusSelect({ style: extra, ...props }) {
+  const [focused, setFocused] = React.useState(false);
+  return (
+    <select
+      {...props}
+      onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+      onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+      style={{ ...S.input, cursor: "pointer", borderColor: focused ? "#06b6d4" : "#1e3a5f", boxShadow: focused ? "0 0 0 3px rgba(6,182,212,0.12)" : "none", ...extra }}
+    />
+  );
+}
+
+// ─── Logo ─────────────────────────────────────────────────────────────────────
+
+function Logo({ size = "md" }) {
+  const sz = size === "sm" ? 22 : 28;
+  const fsz = size === "sm" ? 17 : 21;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, userSelect: "none" }}>
+      <div style={{ width: sz, height: sz, borderRadius: sz * 0.28, background: "linear-gradient(135deg,#06b6d4 0%,#2563eb 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: sz * 0.55, flexShrink: 0, boxShadow: "0 0 16px rgba(6,182,212,0.4)" }}>
+        💊
+      </div>
+      <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: fsz, letterSpacing: -0.5, color: "#f1f5f9", lineHeight: 1 }}>
+        Less<span style={{ color: "#06b6d4" }}>Meds</span>
+      </span>
+    </div>
+  );
+}
+
+// ─── Progress Stepper ─────────────────────────────────────────────────────────
+
+function Stepper({ steps, current }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 0, fontFamily: "'DM Sans', sans-serif" }}>
+      {steps.map((s, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <React.Fragment key={s}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 700, transition: "all 0.25s",
+                background: done ? "#06b6d4" : active ? "rgba(6,182,212,0.15)" : "transparent",
+                border: `2px solid ${done || active ? "#06b6d4" : "#1e3a5f"}`,
+                color: done ? "#000" : active ? "#06b6d4" : "#475569",
+              }}>
+                {done ? "✓" : i + 1}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? "#e2e8f0" : done ? "#94a3b8" : "#475569", whiteSpace: "nowrap" }}>{s}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div style={{ flex: 1, height: 1, background: done ? "#06b6d4" : "#1e3a5f", margin: "0 10px", minWidth: 20, transition: "background 0.25s" }} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Marketing Nav ────────────────────────────────────────────────────────────
+
+function MarketingNav({ onClinicianSignup, onConsumer }) {
+  const [scrolled, setScrolled] = React.useState(false);
+  React.useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  return (
+    <nav style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+      background: scrolled ? "rgba(4,10,22,0.95)" : "transparent",
+      backdropFilter: scrolled ? "blur(14px)" : "none",
+      borderBottom: scrolled ? "1px solid #1e3a5f" : "1px solid transparent",
+      transition: "all 0.3s", padding: "0 32px",
+    }}>
+      <div style={{ maxWidth: 1160, margin: "0 auto", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Logo />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={onConsumer} style={{ padding: "8px 18px", background: "transparent", border: "1px solid #1e3a5f", borderRadius: 8, color: "#94a3b8", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#06b6d4"; e.currentTarget.style.color = "#06b6d4"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#94a3b8"; }}>
+            For Families
+          </button>
+          <button onClick={onClinicianSignup} style={{ padding: "9px 20px", background: "#06b6d4", border: "none", borderRadius: 8, color: "#001a24", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 0 24px rgba(6,182,212,0.35)", transition: "all 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#22d3ee"}
+            onMouseLeave={e => e.currentTarget.style.background = "#06b6d4"}>
+            Clinician Sign Up →
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+
+function HeroSection({ onClinicianSignup, onConsumer }) {
+  return (
+    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "100px 24px 80px", position: "relative", overflow: "hidden" }}>
+      {/* Grid background */}
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(30,58,95,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(30,58,95,0.18) 1px, transparent 1px)", backgroundSize: "48px 48px", pointerEvents: "none" }} />
+      {/* Glow orbs */}
+      <div style={{ position: "absolute", top: "18%", left: "8%", width: 600, height: 600, background: "radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "15%", right: "6%", width: 500, height: 500, background: "radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 65%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+      <div style={{ maxWidth: 820, textAlign: "center", position: "relative" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 30, padding: "6px 18px", marginBottom: 36, fontFamily: "'DM Sans', sans-serif" }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#06b6d4", display: "inline-block", animation: "lm-pulse 2s ease-in-out infinite" }} />
+          <span style={{ fontSize: 12, color: "#06b6d4", fontWeight: 600, letterSpacing: 0.5 }}>HIPAA Compliant · Now in early access</span>
+        </div>
+
+        <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(40px,6.5vw,78px)", fontWeight: 900, lineHeight: 1.06, letterSpacing: -2.5, color: "#f1f5f9", margin: "0 0 28px" }}>
+          Safer medication<br />
+          <span style={{ background: "linear-gradient(100deg,#06b6d4 0%,#2563eb 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+            management.
+          </span>
+        </h1>
+
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "clamp(16px,2.2vw,21px)", color: "#64748b", lineHeight: 1.75, maxWidth: 580, margin: "0 auto 52px", fontWeight: 400 }}>
+          LessMeds helps family practices and health systems detect dangerous drug combinations, coordinate deprescribing, and keep families informed — in one clinical workflow.
+        </p>
+
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <button onClick={onClinicianSignup} style={{ padding: "16px 38px", background: "#06b6d4", border: "none", borderRadius: 10, color: "#001a24", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 0 40px rgba(6,182,212,0.3)", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#22d3ee"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#06b6d4"; e.currentTarget.style.transform = "none"; }}>
+            Start free trial — clinicians →
+          </button>
+          <button onClick={onConsumer} style={{ padding: "16px 38px", background: "transparent", border: "1.5px solid #1e3a5f", borderRadius: 10, color: "#94a3b8", fontSize: 16, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#38bdf8"; e.currentTarget.style.color = "#e2e8f0"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#94a3b8"; }}>
+            Free medication check →
+          </button>
+        </div>
+
+        <div style={{ marginTop: 64, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#334155", letterSpacing: 1, textTransform: "uppercase", marginRight: 4 }}>Integrates with</span>
+          {["Epic", "Cerner", "athenahealth", "NextGen", "eClinicalWorks"].map(name => (
+            <span key={name} style={{ padding: "4px 12px", background: "rgba(30,58,95,0.5)", border: "1px solid #1e3a5f", borderRadius: 6, fontSize: 11, color: "#475569", fontFamily: "'DM Sans', sans-serif" }}>{name}</span>
+          ))}
+          <span style={{ fontSize: 11, color: "#334155", fontFamily: "'DM Sans', sans-serif" }}>+ more</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+function StatsBar() {
+  return (
+    <div style={{ background: "#071428", borderTop: "1px solid #1e3a5f", borderBottom: "1px solid #1e3a5f", padding: "52px 24px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: 32, textAlign: "center" }}>
+        {STATS.map(s => (
+          <div key={s.n}>
+            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 48, fontWeight: 900, color: "#06b6d4", letterSpacing: -2, lineHeight: 1 }}>{s.n}</div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#64748b", marginTop: 8 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Features ─────────────────────────────────────────────────────────────────
+
+function FeaturesSection() {
+  const features = [
+    { icon: "◎", color: "#06b6d4", title: "Automated risk scoring", body: "Every patient gets a dynamic polypharmacy risk score — recalculated in real time from medication count, interactions, Beers Criteria flags, and missed dose patterns." },
+    { icon: "⚗", color: "#818cf8", title: "Pharmacist + physician workflow", body: "Pharmacists propose deprescribing recommendations. Physicians review and approve with one click. Full audit trail for every decision." },
+    { icon: "📱", color: "#34d399", title: "Caregiver mobile sync", body: "Family caregivers log symptoms, receive alerts, and message the care team directly — all HIPAA-compliant and tied to the patient's chart." },
+    { icon: "⬡", color: "#fb923c", title: "EHR integration", body: "Connect to Epic, Cerner, athenahealth, and more. Medication lists, diagnoses, and labs sync automatically on every visit." },
+    { icon: "◈", color: "#f472b6", title: "Real-time drug alerts", body: "Critical interactions and high-risk prescriptions surface the moment they're detected — not buried in a monthly report." },
+    { icon: "▣", color: "#38bdf8", title: "HIPAA audit log", body: "Every recommendation, approval, and edit is timestamped and attributed. Compliance documentation is always up to date." },
+  ];
+  return (
+    <section style={{ padding: "100px 24px", background: "#040a16" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 68 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#06b6d4", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>What's included</p>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: 0, lineHeight: 1.1 }}>
+            Built for the clinical team.<br /><span style={{ color: "#334155", fontWeight: 300 }}>Not just the administrator.</span>
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
+          {features.map(f => (
+            <div key={f.title} style={{ background: "#071428", border: "1px solid #1e3a5f", borderRadius: 16, padding: 28, transition: "all 0.2s", cursor: "default" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = f.color + "66"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.transform = "none"; }}>
+              <div style={{ width: 46, height: 46, borderRadius: 12, background: f.color + "18", border: `1px solid ${f.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 20 }}>{f.icon}</div>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 18, fontWeight: 700, color: "#f1f5f9", marginBottom: 10 }}>{f.title}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#475569", lineHeight: 1.75 }}>{f.body}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+function TestimonialsSection() {
+  return (
+    <section style={{ padding: "100px 24px", background: "#071428", borderTop: "1px solid #1e3a5f" }}>
+      <div style={{ maxWidth: 1060, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 60 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#818cf8", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>From the field</p>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: 0 }}>Trusted by clinicians who care.</h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          {TESTIMONIALS.map(t => (
+            <div key={t.name} style={{ background: "#040a16", border: "1px solid #1e3a5f", borderRadius: 16, padding: 30 }}>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, color: "#06b6d4", lineHeight: 1, marginBottom: 18, opacity: 0.6 }}>"</div>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#94a3b8", lineHeight: 1.85, margin: "0 0 28px", fontStyle: "italic" }}>{t.quote}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#2563eb,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{t.initials}</div>
+                <div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{t.name}</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#475569" }}>{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Pricing Section ──────────────────────────────────────────────────────────
+
+function PricingSection({ onSelectPlan }) {
+  return (
+    <section id="pricing" style={{ padding: "100px 24px 80px", background: "#040a16" }}>
+      <div style={{ maxWidth: 1220, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 60 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#06b6d4", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>Transparent pricing</p>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,50px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: "0 0 14px" }}>Plans for every practice size.</h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: "#475569", margin: 0 }}>14-day free trial. No credit card required. Cancel anytime.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 16, alignItems: "start" }}>
+          {PLANS.map(plan => (
+            <div key={plan.id} style={{ position: "relative", background: "#071428", border: `2px solid ${plan.highlight ? plan.color : "#1e3a5f"}`, borderRadius: 18, padding: "28px 24px", transition: "all 0.2s", cursor: "pointer" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 20px 48px ${plan.color}1a`; e.currentTarget.style.borderColor = plan.color; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = plan.highlight ? plan.color : "#1e3a5f"; }}>
+
+              {plan.highlight && (
+                <div style={{ position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: plan.color, color: "#001a24", fontSize: 10, fontWeight: 800, padding: "4px 16px", borderRadius: 20, whiteSpace: "nowrap", letterSpacing: 0.8, fontFamily: "'DM Sans', sans-serif" }}>MOST POPULAR</div>
+              )}
+
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: plan.color, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{plan.seats}</div>
+              <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 22, fontWeight: 800, color: "#f1f5f9", marginBottom: 2 }}>{plan.name}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#475569", marginBottom: 20 }}>{plan.tagline}</div>
+
+              <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 20, marginBottom: 20 }}>
+                {plan.price ? (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 40, fontWeight: 900, color: plan.color, letterSpacing: -2, lineHeight: 1 }}>${plan.price.toLocaleString()}</span>
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#475569" }}>/mo</span>
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 30, fontWeight: 900, color: plan.color }}>Custom</div>
+                )}
+              </div>
+
+              <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 9 }}>
+                {plan.features.map(f => (
+                  <li key={f} style={{ display: "flex", gap: 9, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#64748b", alignItems: "flex-start", lineHeight: 1.4 }}>
+                    <span style={{ color: plan.color, flexShrink: 0, fontWeight: 700, marginTop: 0 }}>✓</span>{f}
+                  </li>
+                ))}
+              </ul>
+
+              <button onClick={() => onSelectPlan(plan)}
+                style={{ width: "100%", padding: "12px 16px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s", border: `1.5px solid ${plan.color}`, background: plan.highlight ? plan.color : "transparent", color: plan.highlight ? "#001a24" : plan.color }}>
+                {plan.id === "enterprise" ? "Contact sales →" : "Start free trial →"}
+              </button>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", textAlign: "center", color: "#334155", fontSize: 13, marginTop: 40 }}>
+          All plans include HIPAA-compliant data handling, AES-256 encryption, and caregiver mobile app access.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── Consumer CTA ──────────────────────────────────────────────────────────────
+
+function ConsumerSection() {
+  return (
+    <section style={{ padding: "100px 24px", background: "#071428", borderTop: "1px solid #1e3a5f" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, background: "linear-gradient(135deg,#34d399,#059669)", margin: "0 auto 28px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: "0 0 32px rgba(52,211,153,0.25)" }}>📱</div>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#34d399", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 16 }}>For families & caregivers</p>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(26px,3.5vw,46px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: "0 0 20px", lineHeight: 1.12 }}>
+          Free medication safety check.
+        </h2>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, color: "#475569", lineHeight: 1.8, margin: "0 0 44px" }}>
+          Enter any medication list and get an instant risk score — no account needed. If your physician uses LessMeds, the app connects directly to their care team for real-time coordination.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 30 }}>
+          {[
+            { label: "App Store", icon: "🍎", sub: "Download on the" },
+            { label: "Google Play", icon: "▶", sub: "Get it on" },
+          ].map(btn => (
+            <a key={btn.label} href="#" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 24px", background: "#040a16", border: "1.5px solid #1e3a5f", borderRadius: 12, textDecoration: "none", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#06b6d4"; e.currentTarget.style.background = "rgba(6,182,212,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.background = "#040a16"; }}>
+              <span style={{ fontSize: 26 }}>{btn.icon}</span>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5 }}>{btn.sub}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{btn.label}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
+          {["Free — always", "No account required", "HIPAA-safe"].map(t => (
+            <span key={t} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#475569", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ color: "#34d399" }}>✓</span> {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+
+function SiteFooter({ onClinicianSignup }) {
+  return (
+    <footer style={{ background: "#040a16", borderTop: "1px solid #1e3a5f", padding: "56px 32px 36px", fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 40, marginBottom: 48 }}>
+          <div style={{ maxWidth: 280 }}>
+            <Logo />
+            <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.7, marginTop: 14 }}>Clinical-grade polypharmacy management for family practices and health systems.</p>
+            <button onClick={onClinicianSignup} style={{ marginTop: 20, padding: "9px 20px", background: "#06b6d4", border: "none", borderRadius: 8, color: "#001a24", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+              Start free trial →
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 56, flexWrap: "wrap" }}>
+            {[
+              { heading: "Product", links: ["Features", "Pricing", "EHR Integrations", "Security & HIPAA", "Changelog"] },
+              { heading: "Company", links: ["About", "Blog", "Careers", "Contact"] },
+              { heading: "Legal", links: ["Privacy Policy", "Terms of Service", "BAA", "HIPAA Notice"] },
+            ].map(col => (
+              <div key={col.heading}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "#334155", marginBottom: 16 }}>{col.heading}</div>
+                {col.links.map(l => (
+                  <div key={l} style={{ fontSize: 13, color: "#475569", marginBottom: 11, cursor: "pointer", transition: "color 0.15s" }}
+                    onMouseEnter={e => e.currentTarget.style.color = "#06b6d4"}
+                    onMouseLeave={e => e.currentTarget.style.color = "#475569"}>{l}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 24, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <span style={{ fontSize: 12, color: "#1e3a5f" }}>© 2026 LessMeds Inc. All rights reserved.</span>
+          <span style={{ fontSize: 12, color: "#1e3a5f" }}>HIPAA Compliant · AES-256 · TLS 1.3 · SOC 2 Type II In Progress</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ─── Marketing Site ──────────────────────────────────────────────────────────
+
+function MarketingSite({ onClinicianSignup, onConsumer, onSelectPlan }) {
+  return (
+    <div style={{ background: "#040a16", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @keyframes lm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+        *{box-sizing:border-box;margin:0;padding:0}
+        ::-webkit-scrollbar{width:5px}
+        ::-webkit-scrollbar-track{background:#040a16}
+        ::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:3px}
+      `}</style>
+      <MarketingNav onClinicianSignup={onClinicianSignup} onConsumer={onConsumer} />
+      <HeroSection onClinicianSignup={onClinicianSignup} onConsumer={onConsumer} />
+      <StatsBar />
+      <FeaturesSection />
+      <TestimonialsSection />
+      <PricingSection onSelectPlan={onSelectPlan} />
+      <ConsumerSection />
+      <SiteFooter onClinicianSignup={onClinicianSignup} />
+    </div>
+  );
+}
+
+// ─── Consumer Modal ───────────────────────────────────────────────────────────
+
+function ConsumerModal({ onClose }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.82)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'DM Sans', sans-serif" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: "#071428", border: "1px solid #1e3a5f", borderRadius: 20, padding: "40px 36px", maxWidth: 460, width: "100%", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 20 }}>📱</div>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 28, fontWeight: 900, color: "#f1f5f9", marginBottom: 14, letterSpacing: -0.5 }}>Free Medication Check</h2>
+        <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.75, marginBottom: 36 }}>
+          The LessMeds family app lets you enter any medication list and instantly see polypharmacy risks — completely free. Download on your phone to get started.
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 28, flexWrap: "wrap" }}>
+          {[{ label: "App Store", icon: "🍎" }, { label: "Google Play", icon: "▶" }].map(btn => (
+            <a key={btn.label} href="#" style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 22px", background: "#040a16", border: "1.5px solid #1e3a5f", borderRadius: 12, textDecoration: "none", fontWeight: 700, fontSize: 14, color: "#e2e8f0" }}>
+              <span style={{ fontSize: 22 }}>{btn.icon}</span>{btn.label}
+            </a>
+          ))}
+        </div>
+        <div style={{ background: "#040a16", border: "1px solid #1e3a5f", borderRadius: 10, padding: "14px 18px", marginBottom: 28, textAlign: "left" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#94a3b8", marginBottom: 6 }}>Is your doctor using LessMeds?</div>
+          <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>Ask your physician's office for a caregiver access code. The app will connect directly to their clinical dashboard for coordinated care.</div>
+        </div>
+        <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#475569", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back to site</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Enterprise Contact Modal ─────────────────────────────────────────────────
+
+function EnterpriseModal({ onClose }) {
+  const [f, setF] = useState({ name: "", title: "", email: "", phone: "", org: "", size: "", notes: "" });
+  const [sent, setSent] = useState(false);
+  const u = k => e => setF(p => ({ ...p, [k]: e.target.value }));
+  const valid = f.name && f.email && f.org;
+
+  function submit() {
+    if (!valid) return;
+    setSent(true);
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.82)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflowY: "auto", fontFamily: "'DM Sans', sans-serif" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: "#071428", border: "1px solid #1e3a5f", borderRadius: 20, padding: "40px 36px", maxWidth: 520, width: "100%", maxHeight: "92vh", overflowY: "auto" }}>
+        {sent ? (
+          <div style={{ textAlign: "center", padding: "32px 0" }}>
+            <div style={{ fontSize: 52, marginBottom: 20 }}>✅</div>
+            <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 900, color: "#f1f5f9", marginBottom: 12 }}>Message received.</h3>
+            <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, marginBottom: 28 }}>Our enterprise team will be in touch within one business day to schedule a discovery call.</p>
+            <button onClick={onClose} style={{ padding: "12px 28px", background: "#06b6d4", border: "none", borderRadius: 9, color: "#001a24", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Close</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 11, color: "#fb923c", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Enterprise · 500+ providers</div>
+              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 900, color: "#f1f5f9", marginBottom: 8, letterSpacing: -0.5 }}>Talk to our sales team</h2>
+              <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>Custom pricing, dedicated implementation, and white-glove onboarding for large health systems and networks.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Full Name *"><FocusInput value={f.name} onChange={u("name")} placeholder="Dr. Jane Smith" /></Field>
+              <Field label="Title / Role"><FocusInput value={f.title} onChange={u("title")} placeholder="CMO, Medical Director…" /></Field>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Work Email *"><FocusInput type="email" value={f.email} onChange={u("email")} placeholder="jane@healthsystem.org" /></Field>
+              <Field label="Phone"><FocusInput type="tel" value={f.phone} onChange={u("phone")} placeholder="(555) 000-0000" /></Field>
+            </div>
+            <Field label="Organization Name *"><FocusInput value={f.org} onChange={u("org")} placeholder="Health system or hospital name" /></Field>
+            <Field label="Approximate Provider Count">
+              <FocusSelect value={f.size} onChange={u("size")}>
+                <option value="">Select…</option>
+                <option>500 – 1,000</option><option>1,000 – 5,000</option>
+                <option>5,000 – 20,000</option><option>20,000+</option>
+              </FocusSelect>
+            </Field>
+            <Field label="Tell us about your needs">
+              <textarea value={f.notes} onChange={u("notes")} placeholder="Current EHR, key pain points, timeline…" rows={4}
+                style={{ ...S.input, resize: "vertical", lineHeight: 1.65 }} />
+            </Field>
+
+            <button onClick={submit} disabled={!valid}
+              style={{ width: "100%", padding: "14px", borderRadius: 10, border: "none", background: valid ? "#fb923c" : "#1e3a5f", color: valid ? "#001a24" : "#334155", fontSize: 14, fontWeight: 700, cursor: valid ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+              Send to sales team →
+            </button>
+            <button onClick={onClose} style={{ width: "100%", padding: "10px", background: "none", border: "none", color: "#334155", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Signup: Step 1 — Plan Confirm ────────────────────────────────────────────
+
+function StepPlanConfirm({ plan, onNext, onChangePlan }) {
+  return (
+    <div style={{ maxWidth: 500, margin: "0 auto" }}>
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 900, color: "#f1f5f9", marginBottom: 8, letterSpacing: -0.5 }}>Your plan</h2>
+        <p style={{ fontSize: 14, color: "#475569" }}>Confirm the plan you'd like to start with. You can upgrade or downgrade at any time.</p>
+      </div>
+
+      <div style={{ background: "#071428", border: `2px solid ${plan.color}`, borderRadius: 16, padding: 28, marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, color: plan.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{plan.seats}</div>
+            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 900, color: "#f1f5f9" }}>{plan.name}</div>
+            <div style={{ fontSize: 13, color: "#475569", marginTop: 2 }}>{plan.tagline}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 42, fontWeight: 900, color: plan.color, letterSpacing: -2, lineHeight: 1 }}>${plan.price.toLocaleString()}</div>
+            <div style={{ fontSize: 12, color: "#475569" }}>per month</div>
+          </div>
+        </div>
+        <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 18, display: "flex", flexDirection: "column", gap: 9 }}>
+          {plan.features.map(f => (
+            <div key={f} style={{ display: "flex", gap: 9, fontSize: 13, color: "#64748b", alignItems: "flex-start" }}>
+              <span style={{ color: plan.color, flexShrink: 0 }}>✓</span>{f}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 18, padding: "10px 14px", background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.15)", borderRadius: 8, fontSize: 12, color: "#475569" }}>
+          14-day free trial · No credit card required · Cancel anytime
+        </div>
+      </div>
+
+      <button onClick={onNext} style={{ width: "100%", padding: "15px", borderRadius: 11, border: "none", background: "#06b6d4", color: "#001a24", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+        Continue → Practice information
+      </button>
+      <button onClick={onChangePlan} style={{ width: "100%", padding: "12px", borderRadius: 11, border: "1px solid #1e3a5f", background: "transparent", color: "#475569", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        ← Choose a different plan
+      </button>
+    </div>
+  );
+}
+
+// ─── Signup: Step 2 — Practice Info ──────────────────────────────────────────
+
+function StepPracticeInfo({ onNext, onBack }) {
+  const [f, setF] = useState({ practiceName: "", type: "", npi: "", address: "", city: "", state: "", zip: "", adminName: "", adminEmail: "", adminPhone: "" });
+  const u = k => e => setF(p => ({ ...p, [k]: e.target.value }));
+  const valid = f.practiceName && f.type && f.adminName && f.adminEmail;
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 900, color: "#f1f5f9", marginBottom: 8, letterSpacing: -0.5 }}>Practice information</h2>
+        <p style={{ fontSize: 14, color: "#475569" }}>This sets up your organization in LessMeds and creates your administrator account.</p>
+      </div>
+
+      {/* Practice block */}
+      <div style={{ ...S.card, marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#334155", marginBottom: 20 }}>Practice details</div>
+        <Field label="Practice / Organization Name *"><FocusInput value={f.practiceName} onChange={u("practiceName")} placeholder="e.g. Riverside Family Medicine" /></Field>
+        <Field label="Practice Type *">
+          <FocusSelect value={f.type} onChange={u("type")}>
+            <option value="">Select…</option>
+            <option>Family Medicine / Primary Care</option>
+            <option>Internal Medicine</option>
+            <option>Geriatrics / Gerontology</option>
+            <option>Cardiology</option>
+            <option>Community Health Center / FQHC</option>
+            <option>Multi-Specialty Group Practice</option>
+            <option>Hospital / Health System</option>
+            <option>Long-Term Care / SNF</option>
+            <option>Other</option>
+          </FocusSelect>
+        </Field>
+        <Field label="NPI Number (optional)"><FocusInput value={f.npi} onChange={u("npi")} placeholder="1234567890" maxLength={10} /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: 12 }}>
+          <Field label="City"><FocusInput value={f.city} onChange={u("city")} placeholder="Springfield" /></Field>
+          <Field label="State"><FocusInput value={f.state} onChange={u("state")} placeholder="IL" maxLength={2} /></Field>
+          <Field label="ZIP"><FocusInput value={f.zip} onChange={u("zip")} placeholder="62701" maxLength={5} /></Field>
+        </div>
+      </div>
+
+      {/* Admin account block */}
+      <div style={{ ...S.card, marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#334155", marginBottom: 20 }}>Administrator account</div>
+        <Field label="Full Name *"><FocusInput value={f.adminName} onChange={u("adminName")} placeholder="Dr. Jane Smith" /></Field>
+        <Field label="Work Email *"><FocusInput type="email" value={f.adminEmail} onChange={u("adminEmail")} placeholder="jane@yourpractice.com" /></Field>
+        <Field label="Phone"><FocusInput type="tel" value={f.adminPhone} onChange={u("adminPhone")} placeholder="(555) 000-0000" /></Field>
+      </div>
+
+      <button onClick={() => valid && onNext(f)} disabled={!valid}
+        style={{ width: "100%", padding: "15px", borderRadius: 11, border: "none", background: valid ? "#06b6d4" : "#1e3a5f", color: valid ? "#001a24" : "#334155", fontSize: 15, fontWeight: 700, cursor: valid ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+        Continue → Connect your EHR
+      </button>
+      <button onClick={onBack} style={{ width: "100%", padding: "12px", borderRadius: 11, border: "1px solid #1e3a5f", background: "transparent", color: "#475569", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        ← Back
+      </button>
+    </div>
+  );
+}
+
+// ─── Signup: Step 3 — EHR Selection ──────────────────────────────────────────
+
+function StepEhrConnect({ practiceInfo, onComplete, onBack }) {
+  const [selected, setSelected] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStep, setSyncStep] = useState(0);
+
+  const syncSteps = selected?.id === "manual"
+    ? ["Creating your workspace…", "Setting up provider accounts…", "Configuring security settings…", "All done!"]
+    : [
+        `Authenticating with ${selected?.name}…`,
+        "Importing patient demographics…",
+        "Syncing medication lists…",
+        "Importing diagnoses & allergies…",
+        "Applying clinical rule sets…",
+        "Finalizing setup…",
+        "All done!",
+      ];
+
+  function startSync() {
+    if (!selected) return;
+    setSyncing(true);
+    let i = 0;
+    const tick = () => {
+      if (i >= syncSteps.length - 1) { setTimeout(onComplete, 900); return; }
+      i++;
+      setSyncStep(i);
+      setTimeout(tick, 850);
+    };
+    setTimeout(tick, 700);
+  }
+
+  const pct = syncing ? Math.round((syncStep / (syncSteps.length - 1)) * 100) : 0;
+  const done = syncing && syncStep === syncSteps.length - 1;
+
+  if (syncing) {
+    return (
+      <div style={{ maxWidth: 440, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 52, marginBottom: 24 }}>{done ? "🎉" : "⚙️"}</div>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 28, fontWeight: 900, color: "#f1f5f9", marginBottom: 10, letterSpacing: -0.5 }}>
+          {done ? "You're all set!" : selected.id === "manual" ? "Setting up workspace…" : `Connecting ${selected.name}…`}
+        </h2>
+        <p style={{ fontSize: 14, color: "#475569", marginBottom: 36 }}>{syncSteps[syncStep]}</p>
+        <div style={{ background: "#1e3a5f", borderRadius: 8, height: 8, marginBottom: 12, overflow: "hidden" }}>
+          <div style={{ height: "100%", borderRadius: 8, background: "linear-gradient(90deg,#06b6d4,#818cf8)", width: `${pct}%`, transition: "width 0.7s cubic-bezier(.4,0,.2,1)" }} />
+        </div>
+        <div style={{ fontSize: 12, color: "#334155" }}>{pct}% complete</div>
+        {done && (
+          <div style={{ marginTop: 24, padding: "14px 18px", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.25)", borderRadius: 10, fontSize: 14, color: "#34d399", fontWeight: 600 }}>
+            ✓ Setup complete — opening your dashboard…
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 32, fontWeight: 900, color: "#f1f5f9", marginBottom: 8, letterSpacing: -0.5 }}>Connect your EHR</h2>
+        <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.7 }}>
+          Select your electronic health record system. LessMeds will import patient demographics, medication lists, diagnoses, and labs. You can add or change integrations anytime in Settings.
+          <span style={{ display: "block", marginTop: 8, color: "#334155", fontSize: 13 }}>Note: Full API integrations are live at general availability. This demo simulates the connection process.</span>
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, marginBottom: 24 }}>
+        {EHR_OPTIONS.map(ehr => {
+          const active = selected?.id === ehr.id;
+          return (
+            <div key={ehr.id} onClick={() => setSelected(ehr)}
+              style={{ background: "#071428", border: `2px solid ${active ? "#06b6d4" : "#1e3a5f"}`, borderRadius: 12, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, transition: "all 0.15s", boxShadow: active ? "0 0 0 4px rgba(6,182,212,0.1)" : "none" }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = "#334155"; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = "#1e3a5f"; }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: active ? "rgba(6,182,212,0.15)" : "#040a16", border: `1px solid ${active ? "#06b6d4" : "#1e3a5f"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0, transition: "all 0.15s" }}>
+                {ehr.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 14, color: active ? "#06b6d4" : "#e2e8f0", marginBottom: 2 }}>{ehr.name}</div>
+                <div style={{ fontSize: 11, color: "#334155" }}>{ehr.note}</div>
+              </div>
+              {active && <span style={{ color: "#06b6d4", fontSize: 16, flexShrink: 0 }}>✓</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      {selected && selected.id !== "manual" && (
+        <div style={{ background: "rgba(6,182,212,0.05)", border: "1px solid rgba(6,182,212,0.18)", borderRadius: 10, padding: "13px 16px", marginBottom: 20, fontSize: 13, color: "#475569", lineHeight: 1.65 }}>
+          <strong style={{ color: "#64748b" }}>{selected.name}</strong> uses OAuth 2.0 / SMART on FHIR for secure authentication. Your patient data never leaves encrypted, HIPAA-compliant channels.
+        </div>
+      )}
+
+      <button onClick={startSync} disabled={!selected}
+        style={{ width: "100%", padding: "15px", borderRadius: 11, border: "none", background: selected ? "#06b6d4" : "#1e3a5f", color: selected ? "#001a24" : "#334155", fontSize: 15, fontWeight: 700, cursor: selected ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", marginBottom: 10 }}>
+        {selected
+          ? selected.id === "manual" ? "Set up workspace →" : `Connect ${selected.name} & launch →`
+          : "Select a system above"}
+      </button>
+      <button onClick={onBack} style={{ width: "100%", padding: "12px", borderRadius: 11, border: "1px solid #1e3a5f", background: "transparent", color: "#475569", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        ← Back
+      </button>
+    </div>
+  );
+}
+
+// ─── Clinician Signup Shell ───────────────────────────────────────────────────
+
+function ClinicianSignup({ initialPlan, onBack, onComplete }) {
+  const [step, setStep] = useState(initialPlan ? 0 : -1); // -1 = choose plan inline
+  const [plan, setPlan] = useState(initialPlan || null);
+  const [practiceInfo, setPracticeInfo] = useState(null);
+  const [showEnterprise, setShowEnterprise] = useState(false);
+
+  const STEP_LABELS = ["Plan", "Practice Info", "EHR Connect"];
+  const currentStepIdx = step; // 0,1,2
+
+  function handleSelectPlan(p) {
+    if (p.id === "enterprise") { setShowEnterprise(true); return; }
+    setPlan(p);
+    setStep(0);
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#040a16", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`*{box-sizing:border-box}`}</style>
+
+      {/* Top bar */}
+      <div style={{ height: 60, background: "#071428", borderBottom: "1px solid #1e3a5f", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px" }}>
+        <Logo size="sm" />
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "#475569", fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>← Back to site</button>
+      </div>
+
+      {/* Stepper (only when plan chosen) */}
+      {step >= 0 && (
+        <div style={{ background: "#071428", borderBottom: "1px solid #1e3a5f", padding: "0 32px" }}>
+          <div style={{ maxWidth: 540, margin: "0 auto", height: 52, display: "flex", alignItems: "center" }}>
+            <Stepper steps={STEP_LABELS} current={step} />
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ padding: step === -1 ? "60px 24px 80px" : "52px 24px 80px", overflowY: "auto" }}>
+        {step === -1 && (
+          <div style={{ maxWidth: 1220, margin: "0 auto" }}>
+            <div style={{ textAlign: "center", marginBottom: 52 }}>
+              <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: "clamp(28px,4vw,48px)", fontWeight: 900, letterSpacing: -1.5, color: "#f1f5f9", margin: "0 0 12px" }}>Choose your plan</h2>
+              <p style={{ fontSize: 15, color: "#475569" }}>14-day free trial on all plans. No credit card required.</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 16, alignItems: "start" }}>
+              {PLANS.map(p => (
+                <div key={p.id} style={{ position: "relative", background: "#071428", border: `2px solid ${p.highlight ? p.color : "#1e3a5f"}`, borderRadius: 18, padding: "28px 22px", cursor: "pointer", transition: "all 0.2s" }}
+                  onClick={() => handleSelectPlan(p)}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 16px 40px ${p.color}18`; e.currentTarget.style.borderColor = p.color; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = p.highlight ? p.color : "#1e3a5f"; }}>
+                  {p.highlight && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.color, color: "#001a24", fontSize: 10, fontWeight: 800, padding: "3px 14px", borderRadius: 20, whiteSpace: "nowrap", letterSpacing: 0.8 }}>MOST POPULAR</div>}
+                  <div style={{ fontSize: 10, color: p.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>{p.seats}</div>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: 21, fontWeight: 900, color: "#f1f5f9", marginBottom: 2 }}>{p.name}</div>
+                  <div style={{ fontSize: 12, color: "#475569", marginBottom: 18 }}>{p.tagline}</div>
+                  <div style={{ borderTop: "1px solid #1e3a5f", paddingTop: 16, marginBottom: 18 }}>
+                    {p.price ? (
+                      <><span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 36, fontWeight: 900, color: p.color, letterSpacing: -1.5 }}>${p.price.toLocaleString()}</span><span style={{ fontSize: 12, color: "#475569", marginLeft: 4 }}>/mo</span></>
+                    ) : (
+                      <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 900, color: p.color }}>Custom</span>
+                    )}
+                  </div>
+                  <ul style={{ listStyle: "none", padding: 0, margin: "0 0 22px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {p.features.map(f => <li key={f} style={{ display: "flex", gap: 8, fontSize: 12, color: "#64748b", alignItems: "flex-start" }}><span style={{ color: p.color, flexShrink: 0 }}>✓</span>{f}</li>)}
+                  </ul>
+                  <button onClick={e => { e.stopPropagation(); handleSelectPlan(p); }}
+                    style={{ width: "100%", padding: "11px", borderRadius: 9, border: `1.5px solid ${p.color}`, background: p.highlight ? p.color : "transparent", color: p.highlight ? "#001a24" : p.color, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                    {p.id === "enterprise" ? "Contact sales →" : "Select plan →"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === 0 && plan && (
+          <StepPlanConfirm plan={plan} onNext={() => setStep(1)} onChangePlan={() => setStep(-1)} />
+        )}
+        {step === 1 && (
+          <StepPracticeInfo onNext={info => { setPracticeInfo(info); setStep(2); }} onBack={() => setStep(0)} />
+        )}
+        {step === 2 && (
+          <StepEhrConnect practiceInfo={practiceInfo} onComplete={onComplete} onBack={() => setStep(1)} />
+        )}
+      </div>
+
+      {showEnterprise && <EnterpriseModal onClose={() => setShowEnterprise(false)} />}
+    </div>
+  );
+}
+
+// ─── Root App ─────────────────────────────────────────────────────────────────
+
+export default function LessMeds() {
+  const [view, setView] = useState("marketing"); // "marketing" | "signup" | "dashboard"
+  const [signupPlan, setSignupPlan] = useState(null);
+  const [showConsumer, setShowConsumer] = useState(false);
+
+  if (view === "dashboard") return <LessMedsDashboard />;
+
+  if (view === "signup") {
+    return (
+      <ClinicianSignup
+        initialPlan={signupPlan}
+        onBack={() => { setView("marketing"); setSignupPlan(null); }}
+        onComplete={() => setView("dashboard")}
+      />
+    );
+  }
+
+  return (
+    <>
+      <MarketingSite
+        onClinicianSignup={() => setView("signup")}
+        onConsumer={() => setShowConsumer(true)}
+        onSelectPlan={plan => {
+          if (plan.id === "enterprise") return; // handled inside ClinicianSignup
+          setSignupPlan(plan);
+          setView("signup");
+        }}
+      />
+      {showConsumer && <ConsumerModal onClose={() => setShowConsumer(false)} />}
+    </>
   );
 }
